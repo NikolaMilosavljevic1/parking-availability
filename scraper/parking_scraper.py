@@ -53,7 +53,6 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("belvil",         "belvil"),
     ("bezanijska",     "bezanijska-kosa"),
     ("bežanijska",     "bezanijska-kosa"),
-    ("blok 43",        "blok-43"),
     ("cukarica",       "cukarica"),
     ("čukarica",       "cukarica"),
     ("cvetkova",       "cvetkova-pijaca"),
@@ -75,6 +74,11 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("viška",          "viska"),
     ("vma",            "vma"),
 ]
+
+# Locations to silently ignore — not public / reserved spots only
+_IGNORED_IDS: set[str] = {
+    "blok-43",               # Garaža sa rezervisanim parking-mestima (not public)
+}
 
 # Regex to extract lat,lng from Google Maps href
 # e.g. https://www.google.com/maps/place/44.801441,20.474145
@@ -199,9 +203,13 @@ def _parse_html(html: str) -> list[ParkingReading]:
         # Resolve to our location_id
         loc_id = _resolve_id(raw_name)
         if loc_id is None:
-            # Still record it — we'll upsert with the raw name as a new location
             loc_id = _slugify(raw_name)
             logger.info("New/unmapped location %r → generated id %r", raw_name, loc_id)
+
+        # Skip explicitly ignored locations (e.g. reserved/non-public garages)
+        if loc_id in _IGNORED_IDS:
+            logger.debug("Ignoring blocked location %r", loc_id)
+            continue
 
         loc_type = _resolve_type(raw_name)
 

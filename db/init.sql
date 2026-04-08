@@ -124,57 +124,54 @@ VALUES
     -- PARKING LOTS (Parkirališta) — 18 confirmed on live site
     -- -------------------------------------------------------------------------
     ('ada',
-     'Parkiralište "Ada"',                    'Ada Ciganlija bb',              'parking_lot', 1548, 44.786757, 20.413043, 'Čukarica'),
+     'Parkiralište "Ada"',                    'Ada Ciganlija bb',              'parking_lot', 1023, 44.786757, 20.413043, 'Čukarica'),
 
     ('belvil',
-     'Parkiralište "Belvil"',                 'Bulevar Nikole Tesle bb',       'parking_lot', NULL, 44.805451, 20.412065, 'Novi Beograd'),
+     'Parkiralište "Belvil"',                 'Bulevar Nikole Tesle bb',       'parking_lot', 413,  44.805451, 20.412065, 'Novi Beograd'),
 
     ('bezanijska-kosa',
-     'Parkiralište "Bežanijska kosa"',        'Bežanijska kosa bb',            'parking_lot', NULL, 44.816044, 20.375018, 'Novi Beograd'),
-
-    ('blok-43',
-     'Parkiralište "Blok 43"',                'Blok 43 bb',                    'parking_lot', NULL, 44.826999, 20.360618, 'Novi Beograd'),
+     'Parkiralište "Bežanijska kosa"',        'Bežanijska kosa bb',            'parking_lot', 85,   44.816044, 20.375018, 'Novi Beograd'),
 
     ('cukarica',
-     'Parkiralište "Čukarica"',               'Šumadijski trg bb',             'parking_lot', NULL, 44.782623, 20.415853, 'Čukarica'),
+     'Parkiralište "Čukarica"',               'Šumadijski trg bb',             'parking_lot', 76,   44.782623, 20.415853, 'Čukarica'),
 
     ('cvetkova-pijaca',
      'Parkiralište "Cvetkova pijaca"',        'Živka Davidovića bb',           'parking_lot', 81,   44.792080, 20.507312, 'Palilula'),
 
     ('donji-grad',
-     'Parkiralište "Donji grad"',             'Kej Oslobodjenja bb',           'parking_lot', NULL, 44.819175, 20.448810, 'Stari Grad'),
+     'Parkiralište "Donji grad"',             'Kej Oslobodjenja bb',           'parking_lot', 387,  44.819175, 20.448810, 'Stari Grad'),
 
     ('kalemegdan',
-     'Parkiralište "Kalemegdan"',             'Kalemegdan bb',                 'parking_lot', NULL, 44.824869, 20.455307, 'Stari Grad'),
+     'Parkiralište "Kalemegdan"',             'Kalemegdan bb',                 'parking_lot', 113,  44.824869, 20.455307, 'Stari Grad'),
 
     ('kamenicka',
-     'Parkiralište "Kamenička"',              'Kamenička bb',                  'parking_lot', NULL, 44.811306, 20.454778, 'Stari Grad'),
+     'Parkiralište "Kamenička"',              'Kamenička bb',                  'parking_lot', 92,   44.811306, 20.454778, 'Stari Grad'),
 
     ('ljermontova',
-     'Parkiralište "Ljermontova"',            'Ljermontova bb',                'parking_lot', NULL, 44.782967, 20.490112, 'Zvezdara'),
+     'Parkiralište "Ljermontova"',            'Ljermontova bb',                'parking_lot', 68,   44.782967, 20.490112, 'Zvezdara'),
 
     ('medjunarodni-carinski',
-     'Parkiralište "Međunarodni carinski terminal"', 'Carinska bb',            'parking_lot', NULL, 44.828269, 20.359824, 'Novi Beograd'),
+     'Parkiralište "Međunarodni carinski terminal"', 'Carinska bb',            'parking_lot', 219,  44.828269, 20.359824, 'Novi Beograd'),
 
     ('milan-gale-muskatirovic',
-     'Parkiralište "Milan Gale Muškatirović"','Muškatirović bb',               'parking_lot', NULL, 44.829521, 20.454848, 'Palilula'),
+     'Parkiralište "Milan Gale Muškatirović"','Muškatirović bb',               'parking_lot', 302,  44.829521, 20.454848, 'Palilula'),
 
     ('opstina-nbgd',
-     'Parkiralište "Opština NBGD"',           'Bulevar Mihajla Pupina 167',    'parking_lot', NULL, 44.822591, 20.414157, 'Novi Beograd'),
+     'Parkiralište "Opština NBGD"',           'Bulevar Mihajla Pupina 167',    'parking_lot', 122,  44.822591, 20.414157, 'Novi Beograd'),
 
     ('politika',
-     'Parkiralište "Politika"',               'Makedonska bb',                 'parking_lot', NULL, 44.815752, 20.464650, 'Stari Grad'),
+     'Parkiralište "Politika"',               'Makedonska bb',                 'parking_lot', 60,   44.815752, 20.464650, 'Stari Grad'),
 
     ('slavija',
-     'Parkiralište "Slavija"',                'Trg Slavija bb',                'parking_lot', NULL, 44.802339, 20.468049, 'Vračar'),
+     'Parkiralište "Slavija"',                'Trg Slavija bb',                'parking_lot', 183,  44.802339, 20.468049, 'Vračar'),
 
     ('vidin-kapija',
-     'Parkiralište "Vidin kapija"',           'Vidin kapija bb',               'parking_lot', NULL, 44.827353, 20.452506, 'Stari Grad'),
+     'Parkiralište "Vidin kapija"',           'Vidin kapija bb',               'parking_lot', 71,   44.827353, 20.452506, 'Stari Grad'),
 
     ('viska',
-     'Parkiralište "Viška"',                  'Viška bb',                      'parking_lot', NULL, 44.800917, 20.475278, 'Vračar'),
+     'Parkiralište "Viška"',                  'Viška bb',                      'parking_lot', 48,   44.800917, 20.475278, 'Vračar'),
 
     ('vma',
-     'Parkiralište "VMA"',                    'Crnotravska 17',                'parking_lot', NULL, 44.763723, 20.470734, 'Voždovac')
+     'Parkiralište "VMA"',                    'Crnotravska 17',                'parking_lot', 574,  44.763723, 20.470734, 'Voždovac')
 
 ON CONFLICT (id) DO NOTHING;
