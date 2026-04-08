@@ -235,19 +235,33 @@ if page == "🟢 Live Overview":
         orientation="h",
         color="color",
         color_discrete_map="identity",
+        text=chart_df["occupancy_pct"].apply(lambda v: f"{v:.0f}%"),
         labels={"occupancy_pct": "Occupancy (%)", "short_name": ""},
-        range_x=[0, 100],
-        height=max(300, len(chart_df) * 26),
+        range_x=[0, 105],
+        height=max(340, len(chart_df) * 30),
+    )
+    fig.update_traces(
+        textposition="outside",
+        textfont=dict(size=12, color="#111827"),
+        cliponaxis=False,
     )
     fig.update_layout(
         showlegend=False,
-        margin=dict(l=0, r=20, t=10, b=10),
-        xaxis=dict(ticksuffix="%"),
+        margin=dict(l=0, r=60, t=10, b=10),
+        xaxis=dict(
+            ticksuffix="%",
+            tickfont=dict(size=13, color="#374151"),
+            title_font=dict(size=14, color="#111827"),
+            gridcolor="#f3f4f6",
+        ),
+        yaxis=dict(
+            tickfont=dict(size=13, color="#111827"),
+            title="",
+        ),
         plot_bgcolor="white",
         paper_bgcolor="white",
+        font=dict(family="sans-serif", size=13, color="#111827"),
     )
-    fig.add_vline(x=50, line_dash="dot", line_color="#9ca3af", line_width=1)
-    fig.add_vline(x=80, line_dash="dot", line_color="#9ca3af", line_width=1)
     st.plotly_chart(fig, use_container_width=True)
 
 
@@ -321,13 +335,13 @@ elif page == "📈 Historical":
         x=hist_df["hour"],
         y=hist_df["occupancy_pct"],
         mode="lines+markers",
-        line=dict(color="#1d4ed8", width=2),
+        line=dict(color="#1d4ed8", width=2.5),
         marker=dict(
             color=hist_df["color"],
-            size=7,
-            line=dict(color="white", width=1),
+            size=8,
+            line=dict(color="white", width=1.5),
         ),
-        hovertemplate="%{x|%a %d %b %H:%M}<br>Occupancy: %{y:.0f}%<extra></extra>",
+        hovertemplate="%{x|%a %d %b %H:%M}<br><b>Occupancy: %{y:.0f}%</b><extra></extra>",
         name="Occupancy %",
     ))
 
@@ -335,28 +349,49 @@ elif page == "📈 Historical":
     fig_trend.add_trace(go.Scatter(
         x=hist_df["hour"],
         y=hist_df["free_spots"],
-        mode="lines",
-        line=dict(color="#93c5fd", width=1.5, dash="dot"),
+        mode="lines+markers",
+        line=dict(color="#0369a1", width=1.5, dash="dot"),
+        marker=dict(size=4, color="#0369a1"),
         yaxis="y2",
-        hovertemplate="%{x|%a %d %b %H:%M}<br>Free spots: %{y}<extra></extra>",
+        hovertemplate="%{x|%a %d %b %H:%M}<br><b>Free spots: %{y}</b><extra></extra>",
         name="Free spots",
     ))
 
     fig_trend.update_layout(
-        yaxis=dict(title="Occupancy %", range=[0, 105], ticksuffix="%"),
-        yaxis2=dict(title="Free spots", overlaying="y", side="right", showgrid=False),
+        yaxis=dict(
+            title="Occupancy %",
+            title_font=dict(size=13, color="#111827"),
+            tickfont=dict(size=12, color="#374151"),
+            range=[0, 105],
+            ticksuffix="%",
+            dtick=20,
+            gridcolor="#e5e7eb",
+            gridwidth=1,
+            zeroline=False,
+        ),
+        yaxis2=dict(
+            title="Free spots",
+            title_font=dict(size=13, color="#0369a1"),
+            tickfont=dict(size=12, color="#0369a1"),
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            zeroline=False,
+        ),
+        xaxis=dict(
+            tickfont=dict(size=12, color="#374151"),
+            showgrid=False,
+        ),
         hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02,
+            font=dict(size=13, color="#111827"),
+        ),
         plot_bgcolor="white",
         paper_bgcolor="white",
-        margin=dict(l=0, r=0, t=10, b=0),
-        height=320,
-        shapes=[
-            dict(type="line", x0=hist_df["hour"].min(), x1=hist_df["hour"].max(),
-                 y0=50, y1=50, line=dict(color="#f59e0b", dash="dot", width=1)),
-            dict(type="line", x0=hist_df["hour"].min(), x1=hist_df["hour"].max(),
-                 y0=80, y1=80, line=dict(color="#ef4444", dash="dot", width=1)),
-        ],
+        margin=dict(l=0, r=0, t=30, b=0),
+        height=340,
+        font=dict(family="sans-serif", size=13, color="#111827"),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
@@ -387,18 +422,40 @@ elif page == "📈 Historical":
 
         fig_heat = px.imshow(
             pivot,
-            labels=dict(x="Hour of day", y="Day", color="Avg occupancy %"),
-            color_continuous_scale=[[0, "#dcfce7"], [0.5, "#fef9c3"], [1, "#fee2e2"]],
+            labels=dict(x="Hour of day", y="", color="Avg occupancy %"),
+            color_continuous_scale=[
+                [0.0,  "#16a34a"],   # dark green  — empty
+                [0.5,  "#fbbf24"],   # amber        — half full
+                [1.0,  "#dc2626"],   # dark red     — full
+            ],
             zmin=0, zmax=100,
             aspect="auto",
             text_auto=".0f",
         )
+        fig_heat.update_traces(
+            textfont=dict(size=12, color="white"),
+        )
         fig_heat.update_layout(
             margin=dict(l=0, r=0, t=10, b=0),
-            coloraxis_colorbar=dict(ticksuffix="%"),
-            height=280,
+            height=300,
+            font=dict(family="sans-serif", size=13, color="#111827"),
+            coloraxis_colorbar=dict(
+                ticksuffix="%",
+                tickfont=dict(size=12, color="#374151"),
+                title_font=dict(size=12),
+                thickness=14,
+                len=0.9,
+            ),
         )
-        fig_heat.update_xaxes(tickvals=list(range(0, 24, 2)), ticktext=[f"{h}h" for h in range(0, 24, 2)])
+        fig_heat.update_xaxes(
+            tickvals=list(range(0, 24, 2)),
+            ticktext=[f"{h}:00" for h in range(0, 24, 2)],
+            tickfont=dict(size=12, color="#374151"),
+            title_font=dict(size=13, color="#111827"),
+        )
+        fig_heat.update_yaxes(
+            tickfont=dict(size=13, color="#111827"),
+        )
         st.plotly_chart(fig_heat, use_container_width=True)
     else:
         st.info("Not enough data yet to show a heatmap — needs at least a few days of scraping.")
@@ -493,7 +550,7 @@ elif page == "🎭 Events":
             st.markdown(
                 f"<div style='border-left:4px solid {color};padding:8px 12px;"
                 f"margin-bottom:8px;border-radius:0 6px 6px 0;background:#f9fafb'>"
-                f"<strong>{icon} {ev['event_name']}</strong><br>"
+                f"<strong style='color:#111827'>{icon} {ev['event_name']}</strong><br>"
                 f"<span style='color:#6b7280;font-size:13px'>"
                 f"{ev['venue_name']} &nbsp;·&nbsp; {time_str}"
                 f"{'&nbsp;·&nbsp;' + att if att else ''}"
@@ -511,12 +568,29 @@ elif page == "🎭 Events":
     fig_v = px.bar(
         venue_counts, x="Count", y="Venue", orientation="h",
         color_discrete_sequence=["#1d4ed8"],
-        height=max(200, len(venue_counts) * 40),
+        text="Count",
+        height=max(220, len(venue_counts) * 48),
+    )
+    fig_v.update_traces(
+        textposition="outside",
+        textfont=dict(size=13, color="#111827"),
+        cliponaxis=False,
     )
     fig_v.update_layout(
-        margin=dict(l=0, r=0, t=10, b=0),
-        plot_bgcolor="white", paper_bgcolor="white",
-        yaxis_title="",
+        margin=dict(l=0, r=40, t=10, b=0),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(family="sans-serif", size=13, color="#111827"),
+        xaxis=dict(
+            title="Number of events",
+            tickfont=dict(size=12, color="#374151"),
+            title_font=dict(size=13, color="#111827"),
+            gridcolor="#f3f4f6",
+        ),
+        yaxis=dict(
+            title="",
+            tickfont=dict(size=13, color="#111827"),
+        ),
     )
     st.plotly_chart(fig_v, use_container_width=True)
 
@@ -558,13 +632,29 @@ elif page == "🔍 Data Quality":
             x="minute", y="locations_scraped",
             labels={"minute": "Time", "locations_scraped": "Locations scraped"},
             color_discrete_sequence=["#22c55e"],
-            height=200,
+            height=240,
         )
-        fig_cycles.add_hline(y=27, line_dash="dot", line_color="#ef4444",
-                             annotation_text="Expected (27)", annotation_position="top right")
+        fig_cycles.add_hline(
+            y=26, line_dash="dash", line_color="#ef4444", line_width=2,
+            annotation_text="Expected: 26", annotation_position="top right",
+            annotation_font=dict(size=12, color="#ef4444"),
+        )
         fig_cycles.update_layout(
             margin=dict(l=0, r=0, t=10, b=0),
-            plot_bgcolor="white", paper_bgcolor="white",
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font=dict(family="sans-serif", size=13, color="#111827"),
+            xaxis=dict(
+                tickfont=dict(size=12, color="#374151"),
+                title_font=dict(size=13, color="#111827"),
+                gridcolor="#f3f4f6",
+            ),
+            yaxis=dict(
+                tickfont=dict(size=12, color="#374151"),
+                title_font=dict(size=13, color="#111827"),
+                gridcolor="#f3f4f6",
+                range=[0, 30],
+            ),
         )
         st.plotly_chart(fig_cycles, use_container_width=True)
     else:

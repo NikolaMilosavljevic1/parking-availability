@@ -53,6 +53,7 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("belvil",         "belvil"),
     ("bezanijska",     "bezanijska-kosa"),
     ("bežanijska",     "bezanijska-kosa"),
+    ("blok 43",        "blok-43"),          # mapped so the ignore list can filter it
     ("cukarica",       "cukarica"),
     ("čukarica",       "cukarica"),
     ("cvetkova",       "cvetkova-pijaca"),

@@ -464,6 +464,119 @@ async def _scrape_narodno_pozoriste() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Source 7 — MTS Dvorana (via tickets.rs mirror — mtsdvorana.rs blocks bots)
+# tickets.rs lists: date as "DD. MMM YYYY HH:MM" text, title in <h5>
+# ---------------------------------------------------------------------------
+
+async def _scrape_mts_dvorana() -> list[dict]:
+    url = "https://tickets.rs/venue/mts_dvorana_21"
+    events = []
+
+    try:
+        async with httpx.AsyncClient(headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+    except Exception as exc:
+        logger.warning("MTS Dvorana (tickets.rs): fetch failed: %s", exc)
+        return []
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    # tickets.rs event cards: each event is an <article> or <div> with a title
+    # and a date string somewhere in the card
+    cards = (
+        soup.select("article.event-item") or
+        soup.select(".event-item") or
+        soup.select("article") or
+        soup.select(".event-card") or
+        soup.select(".content-box")
+    )
+
+    if not cards:
+        # Fallback: scan all <h5> elements with a nearby date
+        for h5 in soup.find_all("h5"):
+            try:
+                name = h5.get_text(strip=True)
+                if not name or len(name) < 3:
+                    continue
+                # Look for a date in surrounding text (parent or sibling)
+                container = h5.parent or h5
+                date_found = None
+                time_found = None
+                for el in container.find_all(["span", "div", "p", "time", "small"]):
+                    raw = el.get("datetime", "") or el.get_text(strip=True)
+                    d = _parse_date_text(raw)
+                    if d and _is_future(d):
+                        date_found = d
+                        # Try to extract HH:MM time
+                        t_match = re.search(r"\b(\d{1,2}):(\d{2})\b", raw)
+                        if t_match:
+                            import datetime as dt_mod
+                            try:
+                                time_found = dt_mod.time(int(t_match.group(1)), int(t_match.group(2)))
+                            except ValueError:
+                                pass
+                        break
+                if not date_found:
+                    continue
+                events.append({
+                    "event_name":          name[:200],
+                    "event_type":          "concert",
+                    "venue_name":          "MTS Dvorana",
+                    "venue_lat":           44.8133,
+                    "venue_lng":           20.4628,
+                    "event_date":          date_found,
+                    "event_time":          time_found,
+                    "expected_attendance": 2500,
+                })
+            except Exception as exc:
+                logger.debug("MTS Dvorana fallback: error parsing h5: %s", exc)
+    else:
+        for card in cards:
+            try:
+                name_el = card.find(["h5", "h4", "h3", "h2", "a"])
+                if not name_el:
+                    continue
+                name = name_el.get_text(strip=True)
+                if not name or len(name) < 3:
+                    continue
+
+                date_found = None
+                time_found = None
+                for el in card.find_all(["time", "span", "div", "p", "small"]):
+                    raw = el.get("datetime", "") or el.get_text(strip=True)
+                    d = _parse_date_text(raw)
+                    if d and _is_future(d):
+                        date_found = d
+                        t_match = re.search(r"\b(\d{1,2}):(\d{2})\b", raw)
+                        if t_match:
+                            import datetime as dt_mod
+                            try:
+                                time_found = dt_mod.time(int(t_match.group(1)), int(t_match.group(2)))
+                            except ValueError:
+                                pass
+                        break
+                if not date_found:
+                    continue
+
+                events.append({
+                    "event_name":          name[:200],
+                    "event_type":          "concert",
+                    "venue_name":          "MTS Dvorana",
+                    "venue_lat":           44.8133,
+                    "venue_lng":           20.4628,
+                    "event_date":          date_found,
+                    "event_time":          time_found,
+                    "expected_attendance": 2500,
+                })
+            except Exception as exc:
+                logger.debug("MTS Dvorana: error parsing card: %s", exc)
+
+    logger.info("MTS Dvorana: scraped %d events", len(events))
+    return events
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -482,11 +595,12 @@ async def scrape_all_events() -> list[dict]:
         _scrape_partizan(),
         _scrape_sava_center(),
         _scrape_narodno_pozoriste(),
+        _scrape_mts_dvorana(),
         return_exceptions=True,
     )
 
     all_events = list(hram_events)
-    source_names = ["Arena", "Crvena zvezda", "Partizan", "Sava Center", "Narodno pozoriste"]
+    source_names = ["Arena", "Crvena zvezda", "Partizan", "Sava Center", "Narodno pozoriste", "MTS Dvorana"]
 
     for name, result in zip(source_names, results):
         if isinstance(result, Exception):
@@ -506,12 +620,12 @@ _INSERT_EVENT_SQL = """
 INSERT INTO city_events
     (event_name, event_type, venue_name, venue_lat, venue_lng,
      event_date, event_time, expected_attendance, scraped_at)
-SELECT $1, $2, $3, $4, $5, $6, $7, $8, NOW()
+SELECT $1::varchar, $2::varchar, $3::varchar, $4, $5, $6, $7, $8, NOW()
 WHERE NOT EXISTS (
     SELECT 1 FROM city_events
-    WHERE event_name = $1
+    WHERE event_name = $1::varchar
       AND event_date = $6
-      AND COALESCE(venue_name, '') = COALESCE($3, '')
+      AND COALESCE(venue_name, '') = COALESCE($3::varchar, '')
 )
 """
 
