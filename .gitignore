@@ -1,0 +1,60 @@
+# ── Environment & secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example          # allow the example template through
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# ── Node / React Native ───────────────────────────────────────────────────────
+node_modules/
+.expo/
+dist/
+build/
+*.tsbuildinfo
+.metro-cache/
+android/
+ios/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Don't commit named volumes or local override files
+docker-compose.override.yml
+
+# ── ML artefacts (large binary files) ────────────────────────────────────────
+ml/models/
+ml/*.pkl
+ml/*.joblib
+ml/*.h5
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ── Playwright debug output ───────────────────────────────────────────────────
+debug_page.html
+test-results/
+playwright-report/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
