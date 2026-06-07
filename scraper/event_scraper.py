@@ -102,7 +102,7 @@ def _parse_date_text(text: str) -> Optional[date]:
     """
     Parse Serbian date text in various formats:
       '15. april 2025'  'april 26'  '15.04.2025'  '2025-04-15'
-      'Сре1апр'         'апр 26'    '26. апр 2025'
+      'Сре1апр'         'апр 26'    '26. апр 2025' 
     Returns None if parsing fails.
     """
     text = text.strip()

@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { API_URL } from "../config";
+import NavigationPicker from "../components/NavigationPicker";
 import OccupancyBar, { occupancyColor } from "../components/OccupancyBar";
 import HourlyOccupancyChart from "../components/HourlyOccupancyChart";
 import { CityEvent, Location, Snapshot } from "../types";
@@ -37,21 +37,6 @@ function formatDate(iso: string): string {
   });
 }
 
-/** Open the native maps app to navigate to a location. */
-function openDirections(lat: number, lng: number, name: string) {
-  const label = encodeURIComponent(name);
-  const url = Platform.select({
-    ios: `maps:0,0?q=${label}@${lat},${lng}`,
-    android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-    default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-  });
-  Linking.openURL(url!).catch(() =>
-    Linking.openURL(
-      `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
-    ),
-  );
-}
-
 const EVENT_TYPE_EMOJI: Record<string, string> = {
   concert: "🎵",
   sports: "⚽",
@@ -71,6 +56,7 @@ export default function GarageDetail({ route }: Props) {
   const [history, setHistory] = useState<Snapshot[]>([]);
   const [events, setEvents] = useState<CityEvent[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [navPickerVisible, setNavPickerVisible] = useState(false);
 
   // ---------- Fetch fresh location data + history ----------
 
@@ -213,21 +199,24 @@ export default function GarageDetail({ route }: Props) {
 
       {/* Directions button */}
       {location.latitude != null && location.longitude != null && (
-        <Pressable
-          style={({ pressed }: { pressed: boolean }) => [
-            styles.directionsBtn,
-            pressed && { opacity: 0.75 },
-          ]}
-          onPress={() =>
-            openDirections(
-              location.latitude!,
-              location.longitude!,
-              location.name,
-            )
-          }
-        >
-          <Text style={styles.directionsBtnText}>Get Directions</Text>
-        </Pressable>
+        <>
+          <Pressable
+            style={({ pressed }: { pressed: boolean }) => [
+              styles.directionsBtn,
+              pressed && { opacity: 0.75 },
+            ]}
+            onPress={() => setNavPickerVisible(true)}
+          >
+            <Text style={styles.directionsBtnText}>Get Directions</Text>
+          </Pressable>
+          <NavigationPicker
+            visible={navPickerVisible}
+            lat={location.latitude!}
+            lng={location.longitude!}
+            name={location.name}
+            onClose={() => setNavPickerVisible(false)}
+          />
+        </>
       )}
 
       {/* 24h occupancy chart */}

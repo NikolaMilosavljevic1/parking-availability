@@ -60,3 +60,5 @@ playwright-report/
 logs/
 
 .claude/
+
+IMPLEMENTATION_PLAN.md

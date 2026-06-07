@@ -1,3 +1,12 @@
+/** Anchor for distance sorting — user GPS or a geocoded destination. */
+export interface AnchorPoint {
+  lat: number;
+  lng: number;
+  label: string;
+}
+
+export type SortMode = 'near_me' | 'destination';
+
 /** A parking location with its current live availability merged in. */
 export interface Location {
   id: string;
@@ -23,8 +32,9 @@ export interface Location {
   dist_to_narodno_pozoriste_km: number | null;
   dist_to_sava_centar_km: number | null;
 
-  // Computed client-side from device GPS
+  // Computed client-side relative to current anchor
   distanceKm?: number;
+  isRecommended?: boolean;
 }
 
 /** One row from the history endpoint. */
