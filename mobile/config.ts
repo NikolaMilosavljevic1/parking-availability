@@ -14,8 +14,8 @@
  *       API_URL = 'http://10.0.2.2:8000'
  */
 
-export const API_URL = 'http://192.168.1.102:8000';
-export const WS_URL  = 'ws://192.168.1.102:8000/ws/live';
+export const API_URL = 'http://192.168.1.14:8000';
+export const WS_URL  = 'ws://192.168.1.14:8000/ws/live';
 
 /** How long to wait (ms) before marking a location's data as stale. */
 export const STALE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes

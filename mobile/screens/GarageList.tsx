@@ -111,17 +111,29 @@ export default function GarageList({ navigation }: Props) {
 
   const wsRef = useRef<WebSocket | null>(null);
   const anchorRef = useRef<AnchorPoint | null>(null);
+  const sortModeRef = useRef<SortMode>("near_me");
   const rawLocationsRef = useRef<Location[]>([]);
 
   useEffect(() => {
     anchorRef.current = anchor;
   }, [anchor]);
 
+  useEffect(() => {
+    sortModeRef.current = sortMode;
+  }, [sortMode]);
+
   const processAndSet = useCallback(
-    (raw: Location[], currentAnchor: AnchorPoint | null) => {
+    (
+      raw: Location[],
+      currentAnchor: AnchorPoint | null,
+      currentSortMode: SortMode,
+    ) => {
       rawLocationsRef.current = raw;
-      const { locations: sorted, recommended: pick } =
-        enrichAndSortLocations(raw, currentAnchor);
+      const { locations: sorted, recommended: pick } = enrichAndSortLocations(
+        raw,
+        currentAnchor,
+        currentSortMode,
+      );
       setLocations(sorted);
       setRecommended(pick);
     },
@@ -136,7 +148,7 @@ export default function GarageList({ navigation }: Props) {
         console.warn("Unexpected /locations response:", data);
         return;
       }
-      processAndSet(data, anchorRef.current);
+      processAndSet(data, anchorRef.current, sortModeRef.current);
     } catch (e) {
       console.warn("Failed to fetch locations:", e);
     } finally {
@@ -171,8 +183,8 @@ export default function GarageList({ navigation }: Props) {
 
   useEffect(() => {
     if (!anchor) return;
-    processAndSet(rawLocationsRef.current, anchor);
-  }, [anchor, processAndSet]);
+    processAndSet(rawLocationsRef.current, anchor, sortMode);
+  }, [anchor, sortMode, processAndSet]);
 
   const handleDestinationSelected = useCallback((dest: AnchorPoint) => {
     setSortMode("destination");
@@ -226,10 +238,10 @@ export default function GarageList({ navigation }: Props) {
             };
           });
 
-          processAndSet(merged, currentAnchor);
+          processAndSet(merged, currentAnchor, sortModeRef.current);
         } else if (msg.location_id) {
           const merged = applyLiveUpdate(rawLocationsRef.current, msg);
-          processAndSet(merged, currentAnchor);
+          processAndSet(merged, currentAnchor, sortModeRef.current);
         }
       } catch (e) {
         console.warn("WS parse error:", e);
@@ -291,6 +303,7 @@ export default function GarageList({ navigation }: Props) {
       <DestinationSearch
         sortMode={sortMode}
         anchorLabel={sortMode === "destination" ? anchor?.label ?? null : null}
+        userCoords={userCoords}
         onDestinationSelected={handleDestinationSelected}
         onClearDestination={handleClearDestination}
       />

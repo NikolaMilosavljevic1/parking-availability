@@ -53,7 +53,6 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("belvil",         "belvil"),
     ("bezanijska",     "bezanijska-kosa"),
     ("bežanijska",     "bezanijska-kosa"),
-    ("blok 43",        "blok-43"),          # mapped so the ignore list can filter it
     ("cukarica",       "cukarica"),
     ("čukarica",       "cukarica"),
     ("cvetkova",       "cvetkova-pijaca"),
@@ -76,10 +75,10 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("vma",            "vma"),
 ]
 
-# Locations to silently ignore — not public / reserved spots only
-_IGNORED_IDS: set[str] = {
-    "blok-43",               # Garaža sa rezervisanim parking-mestima (not public)
-}
+# Display names containing these fragments are skipped (non-public / no live data)
+_SKIPPED_NAME_FRAGMENTS: tuple[str, ...] = (
+    "blok 43",
+)
 
 # Regex to extract lat,lng from Google Maps href
 # e.g. https://www.google.com/maps/place/44.801441,20.474145
@@ -187,6 +186,11 @@ def _parse_html(html: str) -> list[ParkingReading]:
         raw_name = a_tag.get_text(strip=True)
         free_text = span_tag.get_text(strip=True)
 
+        raw_lower = raw_name.lower()
+        if any(frag in raw_lower for frag in _SKIPPED_NAME_FRAGMENTS):
+            logger.debug("Skipping non-public location %r", raw_name)
+            continue
+
         # Parse free spots
         if not free_text.isdigit():
             logger.debug("Non-numeric count %r for %r — skipping", free_text, raw_name)
@@ -206,11 +210,6 @@ def _parse_html(html: str) -> list[ParkingReading]:
         if loc_id is None:
             loc_id = _slugify(raw_name)
             logger.info("New/unmapped location %r → generated id %r", raw_name, loc_id)
-
-        # Skip explicitly ignored locations (e.g. reserved/non-public garages)
-        if loc_id in _IGNORED_IDS:
-            logger.debug("Ignoring blocked location %r", loc_id)
-            continue
 
         loc_type = _resolve_type(raw_name)
 

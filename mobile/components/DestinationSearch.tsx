@@ -1,74 +1,86 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import * as ExpoLocation from 'expo-location';
 
+import { formatDistance } from '../utils/geo';
+import { DestinationOption, searchDestinations } from '../utils/geocoding';
 import { AnchorPoint, SortMode } from '../types';
 
 interface Props {
   sortMode: SortMode;
   anchorLabel: string | null;
+  userCoords: { lat: number; lng: number } | null;
   onDestinationSelected: (anchor: AnchorPoint) => void;
   onClearDestination: () => void;
-}
-
-function normalizeQuery(query: string): string {
-  const trimmed = query.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed.toLowerCase().includes('belgrade') || trimmed.toLowerCase().includes('beograd')) {
-    return trimmed;
-  }
-  return `${trimmed}, Belgrade, Serbia`;
 }
 
 export default function DestinationSearch({
   sortMode,
   anchorLabel,
+  userCoords,
   onDestinationSelected,
   onClearDestination,
 }: Props) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [pickerQuery, setPickerQuery] = useState('');
+  const [options, setOptions] = useState<DestinationOption[]>([]);
+
+  const selectOption = (option: DestinationOption) => {
+    onDestinationSelected({
+      lat: option.lat,
+      lng: option.lng,
+      label: option.label,
+    });
+    setQuery('');
+    setPickerVisible(false);
+    setOptions([]);
+    setPickerQuery('');
+  };
 
   const handleSubmit = async () => {
-    const normalized = normalizeQuery(query);
-    if (!normalized) return;
+    const trimmed = query.trim();
+    if (!trimmed) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      const results = await ExpoLocation.geocodeAsync(normalized);
+      const results = await searchDestinations(trimmed, userCoords);
+
       if (!results.length) {
         setError('Address not found — try a more specific place in Belgrade.');
         return;
       }
 
-      const first = results[0];
-      const label =
-        query.trim() ||
-        first.name ||
-        first.street ||
-        'Selected destination';
+      if (results.length === 1) {
+        selectOption(results[0]);
+        return;
+      }
 
-      onDestinationSelected({
-        lat: first.latitude,
-        lng: first.longitude,
-        label,
-      });
-      setQuery('');
+      setPickerQuery(trimmed);
+      setOptions(results);
+      setPickerVisible(true);
     } catch {
       setError('Could not look up that address. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const closePicker = () => {
+    setPickerVisible(false);
+    setOptions([]);
+    setPickerQuery('');
   };
 
   return (
@@ -109,6 +121,57 @@ export default function DestinationSearch({
             : 'Near your location'}
         </Text>
       </Pressable>
+
+      <Modal
+        visible={pickerVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closePicker}
+      >
+        <Pressable style={styles.backdrop} onPress={closePicker}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.sheetTitle}>
+              Results for "{pickerQuery}"
+            </Text>
+            <Text style={styles.sheetSubtitle}>
+              Tap the correct location — sorted nearest to you
+            </Text>
+
+            {options.map((option, index) => (
+              <Pressable
+                key={`${option.lat}-${option.lng}-${index}`}
+                style={({ pressed }) => [
+                  styles.option,
+                  pressed && styles.optionPressed,
+                ]}
+                onPress={() => selectOption(option)}
+              >
+                <Text style={styles.optionBullet}>○</Text>
+                <View style={styles.optionText}>
+                  <Text style={styles.optionLabel} numberOfLines={2}>
+                    {option.label}
+                  </Text>
+                  {option.distanceKm != null && (
+                    <Text style={styles.optionDistance}>
+                      {formatDistance(option.distanceKm)} from you
+                    </Text>
+                  )}
+                </View>
+              </Pressable>
+            ))}
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.cancel,
+                pressed && styles.optionPressed,
+              ]}
+              onPress={closePicker}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -154,5 +217,69 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: '#1d4ed8',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 32,
+    maxHeight: '70%',
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  sheetSubtitle: {
+    fontSize: 13,
+    color: '#6b7280',
+    marginBottom: 16,
+  },
+  option: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e7eb',
+    gap: 10,
+  },
+  optionPressed: {
+    opacity: 0.6,
+  },
+  optionBullet: {
+    fontSize: 16,
+    color: '#1d4ed8',
+    lineHeight: 22,
+  },
+  optionText: {
+    flex: 1,
+    gap: 2,
+  },
+  optionLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  optionDistance: {
+    fontSize: 13,
+    color: '#6b7280',
+  },
+  cancel: {
+    marginTop: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  cancelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
   },
 });
