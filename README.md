@@ -15,8 +15,6 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
 - Mobile app shows free spots, occupancy bars, GPS distance, and directions
 - Streamlit dashboard for analytics (optional)
 
-For the full implementation roadmap, see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-
 ---
 
 ## Prerequisites
@@ -132,8 +130,7 @@ parking-project/
 ├── mobile/        React Native + Expo + TypeScript
 ├── dashboard/     Streamlit analytics
 ├── db/init.sql    Schema + 27 location seeds
-├── docker-compose.yml
-└── IMPLEMENTATION_PLAN.md
+└── docker-compose.yml
 ```
 
 ---
@@ -184,7 +181,7 @@ Current sources: Belgrade Arena, Hram Svetog Save (hardcoded calendar), Sava Cen
 
 ## Data retention
 
-At 60-second intervals across 27 locations, the database grows by roughly **1.4 million rows per month**. A retention policy (raw snapshots for 90 days, then hourly rollups) is planned for production — see [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) Phase F.
+At 60-second intervals across 27 locations, the database grows by roughly **1.4 million rows per month**. A retention policy (raw snapshots for 90 days, then hourly rollups) is planned for production.
 
 ---
 
