@@ -39,6 +39,12 @@ export interface Location {
   dist_to_narodno_pozoriste_km: number | null;
   dist_to_sava_centar_km: number | null;
 
+  // Rule-based demand hint (detail endpoint only)
+  elevated_demand?: boolean;
+  demand_event_type?: string | null;
+  demand_venue_name?: string | null;
+  demand_event_name?: string | null;
+
   // Computed client-side relative to current anchor
   distanceKm?: number;
   isRecommended?: boolean;

@@ -15,6 +15,7 @@ import StayDurationPicker from "../components/StayDurationPicker";
 import { occupancyColor } from "../components/OccupancyBar";
 import {
   formatAddress,
+  formatDemandHint,
   formatRateLines,
   formatRsd,
   formatTimeBelgrade,
@@ -76,6 +77,7 @@ export default function GarageDetail({ route }: Props) {
       : t("openParkingLot");
 
   const hoursNote = translateHoursNote(location.hours_note, locale);
+  const demandHint = formatDemandHint(location, locale);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -108,6 +110,11 @@ export default function GarageDetail({ route }: Props) {
             )}
           </View>
         </View>
+        {demandHint && (
+          <View style={styles.demandBanner}>
+            <Text style={styles.demandText}>{demandHint}</Text>
+          </View>
+        )}
       </View>
 
       {canEstimate && (
@@ -259,6 +266,22 @@ const styles = StyleSheet.create({
   updatedAt: {
     fontSize: 11,
     color: "#9ca3af",
+  },
+  demandBanner: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#f3f4f6",
+  },
+  demandText: {
+    fontSize: 13,
+    color: "#92400e",
+    lineHeight: 18,
+    backgroundColor: "#fffbeb",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    overflow: "hidden",
   },
   estimateValue: {
     fontSize: 28,

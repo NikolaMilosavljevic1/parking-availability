@@ -12,7 +12,7 @@ Endpoints
 """
 
 import logging
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 from typing import Annotated, Literal, Optional
 
 import asyncpg
@@ -22,6 +22,7 @@ from pydantic import BaseModel, field_validator
 
 from db import get_location, get_locations, get_history, get_events, insert_event
 from cache import get_all_live, get_live
+from demand import get_demand_context
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,10 @@ async def list_locations(
 # GET /locations/{id}
 # ---------------------------------------------------------------------------
 
-@router.get("/locations/{location_id}", summary="Single location with live availability")
+@router.get(
+    "/locations/{location_id}",
+    summary="Single location with live availability and elevated-demand hint",
+)
 async def get_location_detail(
     location_id: str,
     pool:        asyncpg.Pool   = Depends(_pool),
@@ -101,7 +105,20 @@ async def get_location_detail(
         raise HTTPException(status_code=404, detail=f"Location '{location_id}' not found")
 
     live = await get_live(redis, location_id)
-    return _merge_live(static, live)
+    result = _merge_live(static, live)
+
+    demand = await get_demand_context(
+        pool,
+        static["latitude"],
+        static["longitude"],
+        datetime.now(tz=timezone.utc),
+    )
+    result["elevated_demand"] = demand.elevated
+    result["demand_event_type"] = demand.event_type
+    result["demand_venue_name"] = demand.venue_name
+    result["demand_event_name"] = demand.event_name
+
+    return result
 
 
 # ---------------------------------------------------------------------------

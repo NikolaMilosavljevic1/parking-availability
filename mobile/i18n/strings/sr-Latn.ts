@@ -39,6 +39,18 @@ export const srLatn: Record<StringKey, string> = {
   openParkingLot: 'Parkiralište',
   getDirections: 'Pronađi put',
 
+  elevatedDemandWithVenue:
+    'Veće zauzeće nego inače — {eventType} u blizini, {venue}',
+  elevatedDemandWithEventName:
+    'Veće zauzeće nego inače — {eventName} u blizini',
+  elevatedDemandTypeOnly: 'Veće zauzeće nego inače — {eventType} u blizini',
+  demandSports: 'fudbalska utakmica',
+  demandConcert: 'koncert',
+  demandTheatre: 'predstava',
+  demandReligious: 'verski skup',
+  demandFestival: 'festival',
+  demandEvent: 'događaj',
+
   howLongStay: 'Koliko dugo planirate da ostanete?',
   allDay: 'Ceo dan',
   decreaseHours: 'Smanji broj sati',

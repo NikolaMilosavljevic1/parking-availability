@@ -40,6 +40,18 @@ export const en = {
   openParkingLot: 'Open parking lot',
   getDirections: 'Get directions',
 
+  // Elevated demand hint
+  elevatedDemandWithVenue:
+    'Busier than usual — {eventType} nearby at {venue}',
+  elevatedDemandWithEventName: 'Busier than usual — {eventName} nearby',
+  elevatedDemandTypeOnly: 'Busier than usual — {eventType} nearby',
+  demandSports: 'football match',
+  demandConcert: 'concert',
+  demandTheatre: 'theatre performance',
+  demandReligious: 'religious gathering',
+  demandFestival: 'festival',
+  demandEvent: 'event',
+
   // Stay duration
   howLongStay: 'How long will you stay?',
   allDay: 'All day',

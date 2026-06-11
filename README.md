@@ -153,7 +153,7 @@ parking-project/
 | Method | Path                                        | Description                        |
 | ------ | ------------------------------------------- | ---------------------------------- |
 | GET    | `/locations`                                | All locations with live free spots |
-| GET    | `/locations/{id}`                           | Single location                    |
+| GET    | `/locations/{id}`                           | Single location + elevated-demand hint |
 | GET    | `/locations/{id}/history?period=24h|7d|30d` | Hourly occupancy history           |
 | GET    | `/locations/{id}/predict`                   | ML prediction (503 until trained)  |
 | GET    | `/events?days=7`                            | Upcoming city events               |
@@ -162,6 +162,8 @@ parking-project/
 
 
 Full interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+`GET /locations/{id}` includes rule-based demand fields when a large event is within **2 km** and the current time falls in the pre/post-event window: `elevated_demand`, `demand_event_type`, `demand_venue_name`, and `demand_event_name`. The mobile app shows a short hint (event type + venue) without listing all nearby events.
 
 ---
 

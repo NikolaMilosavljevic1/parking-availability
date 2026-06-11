@@ -160,6 +160,50 @@ export function formatRateLines(
   return lines;
 }
 
+const DEMAND_TYPE_KEYS: Record<string, StringKey> = {
+  sports: 'demandSports',
+  concert: 'demandConcert',
+  theatre: 'demandTheatre',
+  religious: 'demandReligious',
+  festival: 'demandFestival',
+  other: 'demandEvent',
+};
+
+function demandEventTypeLabel(
+  eventType: string | null | undefined,
+  locale: Locale,
+): string {
+  const key = DEMAND_TYPE_KEYS[eventType ?? ''] ?? 'demandEvent';
+  return getString(locale, key);
+}
+
+type DemandFields = Pick<
+  Location,
+  | 'elevated_demand'
+  | 'demand_event_type'
+  | 'demand_venue_name'
+  | 'demand_event_name'
+>;
+
+export function formatDemandHint(
+  location: DemandFields,
+  locale: Locale,
+): string | null {
+  if (!location.elevated_demand) return null;
+
+  const eventType = demandEventTypeLabel(location.demand_event_type, locale);
+  const venue = location.demand_venue_name?.trim();
+  const eventName = location.demand_event_name?.trim();
+
+  if (venue) {
+    return getString(locale, 'elevatedDemandWithVenue', { eventType, venue });
+  }
+  if (eventName) {
+    return getString(locale, 'elevatedDemandWithEventName', { eventName });
+  }
+  return getString(locale, 'elevatedDemandTypeOnly', { eventType });
+}
+
 /**
  * Translate Serbian address boilerplate for EN (corner, municipal office, block, etc.).
  * Street and place names are kept as stored in the DB.
