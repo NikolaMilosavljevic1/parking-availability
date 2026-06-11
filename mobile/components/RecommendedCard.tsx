@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { occupancyColor } from './OccupancyBar';
 import { formatDistance } from '../utils/geo';
+import { formatRateShort, useLocale } from '../i18n';
 import { Location } from '../types';
 
 interface Props {
@@ -11,18 +12,16 @@ interface Props {
 }
 
 export default function RecommendedCard({ location, onPress }: Props) {
+  const { t, locale } = useLocale();
   const color = occupancyColor(location.occupancy_pct);
-  const occupancyLabel =
-    location.occupancy_pct != null
-      ? `${Math.round(location.occupancy_pct)}% full`
-      : null;
+  const rateLabel = formatRateShort(location, locale);
 
   return (
     <Pressable
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={onPress}
     >
-      <Text style={styles.badge}>RECOMMENDED</Text>
+      <Text style={styles.badge}>{t('recommended').toUpperCase()}</Text>
       <Text style={styles.name} numberOfLines={2}>
         {location.name}
       </Text>
@@ -30,21 +29,21 @@ export default function RecommendedCard({ location, onPress }: Props) {
         {location.distanceKm != null ? formatDistance(location.distanceKm) : '—'}
         {'  ·  '}
         <Text style={[styles.free, { color }]}>
-          {location.free_spots ?? '—'} free
+          {location.free_spots ?? '—'} {t('free')}
         </Text>
-        {occupancyLabel ? `  ·  ${occupancyLabel}` : ''}
+        {rateLabel ? `  ·  ${rateLabel}` : ''}
       </Text>
-      <Text style={styles.cta}>View details →</Text>
+      <Text style={styles.cta}>{t('viewDetails')}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fffbeb',
+    backgroundColor: '#f8fafc',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#fcd34d',
+    borderColor: '#cbd5e1',
     padding: 14,
     marginHorizontal: 12,
     marginBottom: 8,
@@ -63,8 +62,8 @@ const styles = StyleSheet.create({
   },
   badge: {
     fontSize: 11,
-    fontWeight: '800',
-    color: '#b45309',
+    fontWeight: '700',
+    color: '#1e3a5f',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
@@ -85,6 +84,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontSize: 13,
     fontWeight: '600',
-    color: '#1d4ed8',
+    color: '#1e3a5f',
   },
 });

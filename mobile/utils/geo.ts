@@ -26,11 +26,6 @@ export function formatDistance(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
-export function formatDistanceLabel(km: number, sortMode: SortMode): string {
-  const base = formatDistance(km);
-  return sortMode === 'destination' ? `${base} to destination` : base;
-}
-
 /** Minimum free spots required — scales down for small garages. */
 export function minRequiredFreeSpots(totalSpots: number | null): number {
   if (totalSpots == null) return 3;

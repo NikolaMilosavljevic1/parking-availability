@@ -78,15 +78,25 @@ Scan the QR code with Expo Go (Android) or the Camera app (iOS).
 
 ## Mobile API URL
 
-The app must reach your machine's API. Edit `mobile/config.ts`:
+The app reads the API host from environment variables. Copy the template and set your machine's address:
+
+```bash
+cd mobile
+cp .env.example .env    # Linux / macOS
+copy .env.example .env  # Windows
+```
+
+Edit `mobile/.env`:
 
 
-| Environment                  | `API_URL`                   |
+| Environment                  | `EXPO_PUBLIC_API_URL`       |
 | ---------------------------- | --------------------------- |
 | iOS Simulator / same machine | `http://localhost:8000`     |
 | Android Emulator             | `http://10.0.2.2:8000`      |
 | Physical phone (same WiFi)   | `http://<your-lan-ip>:8000` |
 
+
+Set `EXPO_PUBLIC_WS_URL` to the same host with `ws://` and path `/ws/live`.
 
 Find your LAN IP:
 
@@ -95,9 +105,11 @@ ipconfig          # Windows — look for IPv4 Address
 ifconfig          # macOS / Linux
 ```
 
-Set `WS_URL` to the same host with `ws://` and path `/ws/live`.
+Restart Expo after changing `.env`:
 
-> **Note:** Env-based config (`EXPO_PUBLIC_API_URL`) is planned in Phase B.
+```bash
+npx expo start --clear
+```
 
 ---
 
@@ -175,7 +187,34 @@ Full interactive docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 2. If the site is JS-rendered, use Playwright (see `scraper/parking_scraper.py`)
 3. **Fallback:** `POST /events` on the API for manual entry
 
-Current sources: Belgrade Arena, Hram Svetog Save (hardcoded calendar), Sava Center, Narodno pozorište, MTS Dvorana. FK Crvena zvezda and FK Partizan are stubbed (Phase C).
+Current sources: Belgrade Arena, Hram Svetog Save (hardcoded calendar), Sava Center, Narodno pozorište, MTS Dvorana (tickets.rs), FK Crvena zvezda and FK Partizan (Playwright — home fixtures only). The scraper stores events up to 365 days ahead; the API serves 7 days to mobile. Football scrapers need Playwright/Chromium (see `scraper/Dockerfile`); if a club site changes layout, use `POST /events` as fallback.
+
+The scraper container runs `save_events()` on startup and again daily at 03:00 UTC. Scraping alone does not update the database — events must be persisted via `save_events()`.
+
+### Refreshing events manually
+
+```bash
+docker compose exec scraper python -c "
+import asyncio
+from db import create_pool
+from event_scraper import scrape_all_events, save_events
+
+async def run():
+    pool = await create_pool()
+    events = await scrape_all_events()
+    inserted = await save_events(pool, events)
+    print(f'Scraped {len(events)}, inserted {inserted} new')
+    await pool.close()
+
+asyncio.run(run())
+"
+```
+
+Or run the standalone scraper with `--save` inside the container:
+
+```bash
+docker compose exec scraper python event_scraper.py --save
+```
 
 ---
 

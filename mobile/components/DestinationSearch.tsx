@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { useLocale } from '../i18n';
 import { formatDistance } from '../utils/geo';
 import { DestinationOption, searchDestinations } from '../utils/geocoding';
 import { AnchorPoint, SortMode } from '../types';
@@ -28,6 +29,7 @@ export default function DestinationSearch({
   onDestinationSelected,
   onClearDestination,
 }: Props) {
+  const { t } = useLocale();
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export default function DestinationSearch({
       const results = await searchDestinations(trimmed, userCoords);
 
       if (!results.length) {
-        setError('Address not found — try a more specific place in Belgrade.');
+        setError(t('searchNotFound'));
         return;
       }
 
@@ -71,7 +73,7 @@ export default function DestinationSearch({
       setOptions(results);
       setPickerVisible(true);
     } catch {
-      setError('Could not look up that address. Please try again.');
+      setError(t('searchError'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ export default function DestinationSearch({
       <View style={styles.searchRow}>
         <TextInput
           style={styles.input}
-          placeholder="Where are you going? (optional)"
+          placeholder={t('searchPlaceholder')}
           placeholderTextColor="#9ca3af"
           value={query}
           onChangeText={(text) => {
@@ -117,8 +119,8 @@ export default function DestinationSearch({
       >
         <Text style={styles.chipText}>
           {sortMode === 'destination' && anchorLabel
-            ? `× Near: ${anchorLabel}`
-            : 'Near your location'}
+            ? `× ${t('nearDestination', { label: anchorLabel })}`
+            : t('nearYourLocation')}
         </Text>
       </Pressable>
 
@@ -131,11 +133,9 @@ export default function DestinationSearch({
         <Pressable style={styles.backdrop} onPress={closePicker}>
           <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.sheetTitle}>
-              Results for "{pickerQuery}"
+              {t('resultsFor', { query: pickerQuery })}
             </Text>
-            <Text style={styles.sheetSubtitle}>
-              Tap the correct location — sorted nearest to you
-            </Text>
+            <Text style={styles.sheetSubtitle}>{t('resultsHint')}</Text>
 
             {options.map((option, index) => (
               <Pressable
@@ -153,7 +153,9 @@ export default function DestinationSearch({
                   </Text>
                   {option.distanceKm != null && (
                     <Text style={styles.optionDistance}>
-                      {formatDistance(option.distanceKm)} from you
+                      {t('fromYou', {
+                        distance: formatDistance(option.distanceKm),
+                      })}
                     </Text>
                   )}
                 </View>
@@ -167,7 +169,7 @@ export default function DestinationSearch({
               ]}
               onPress={closePicker}
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={styles.cancelText}>{t('cancel')}</Text>
             </Pressable>
           </Pressable>
         </Pressable>

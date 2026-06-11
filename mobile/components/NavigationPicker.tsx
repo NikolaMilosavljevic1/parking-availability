@@ -9,6 +9,8 @@ import {
   View,
 } from 'react-native';
 
+import { useLocale } from '../i18n';
+
 interface NavApp {
   id: string;
   name: string;
@@ -60,6 +62,7 @@ export default function NavigationPicker({
   name,
   onClose,
 }: Props) {
+  const { t } = useLocale();
   const [availableApps, setAvailableApps] = useState<NavApp[]>([]);
 
   const platform = Platform.OS === 'ios' ? 'ios' : 'android';
@@ -82,7 +85,6 @@ export default function NavigationPicker({
 
     const detected = checks.filter((app): app is NavApp => app != null);
 
-    // Expo Go may not detect installed apps — show all platform options as fallback
     setAvailableApps(detected.length > 0 ? detected : candidates);
   }, [platform]);
 
@@ -125,7 +127,7 @@ export default function NavigationPicker({
     >
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.title}>Navigate with</Text>
+          <Text style={styles.title}>{t('navigateWith')}</Text>
           <Text style={styles.subtitle} numberOfLines={2}>
             {name}
           </Text>
@@ -150,7 +152,7 @@ export default function NavigationPicker({
             ]}
             onPress={openWebFallback}
           >
-            <Text style={styles.optionName}>Google Maps (browser)</Text>
+            <Text style={styles.optionName}>{t('googleMapsBrowser')}</Text>
           </Pressable>
 
           <Pressable
@@ -160,7 +162,7 @@ export default function NavigationPicker({
             ]}
             onPress={onClose}
           >
-            <Text style={styles.cancelText}>Cancel</Text>
+            <Text style={styles.cancelText}>{t('cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

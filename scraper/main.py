@@ -188,13 +188,29 @@ async def parking_job(pool: asyncpg.Pool, redis: aioredis.Redis) -> None:
 # ---------------------------------------------------------------------------
 # Event scrape job — runs once daily at EVENT_SCRAPE_HOUR
 # ---------------------------------------------------------------------------
-async def event_job(pool: asyncpg.Pool) -> None:
-    logger.info("── Daily event scrape start ──")
+async def _log_upcoming_events(pool: asyncpg.Pool) -> None:
+    async with pool.acquire() as conn:
+        count = await conn.fetchval("""
+            SELECT COUNT(*)
+            FROM city_events
+            WHERE event_date >= CURRENT_DATE
+              AND event_date <= CURRENT_DATE + INTERVAL '7 days'
+        """)
+    logger.info("Upcoming events in DB (next 7 days): %d", count)
+
+
+async def event_job(pool: asyncpg.Pool, *, label: str = "Daily") -> None:
+    logger.info("── %s event scrape start ──", label)
     try:
         events = await scrape_all_events()
         if events:
-            await save_events(pool, events)
-            logger.info("── Event scrape complete: %d events saved ──", len(events))
+            inserted = await save_events(pool, events)
+            await _log_upcoming_events(pool)
+            logger.info(
+                "── Event scrape complete: %d scraped, %d new inserted ──",
+                len(events),
+                inserted,
+            )
         else:
             logger.warning("Event scrape returned 0 events")
     except Exception as exc:
@@ -212,6 +228,9 @@ async def main() -> None:
 
     # Warm the Redis cache so the API has data immediately
     await warm_cache(pool, redis)
+
+    # Populate city_events on startup — don't wait until 03:00 UTC cron
+    await event_job(pool, label="Startup")
 
     scheduler = AsyncIOScheduler(timezone="UTC")
 

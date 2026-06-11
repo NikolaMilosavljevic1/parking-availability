@@ -18,6 +18,13 @@ export interface Location {
   longitude: number | null;
   neighborhood: string | null;
 
+  // JKP cenovnik (static, from DB)
+  price_first_hour_rsd: number | null;
+  price_extra_hour_rsd: number | null;
+  price_daily_rsd: number | null;
+  hours_note: string | null;
+  pricing_note: string | null;
+
   // Live data (from Redis via API — null means scraper hasn't run yet)
   free_spots: number | null;
   occupancy_pct: number | null;
@@ -45,19 +52,6 @@ export interface Snapshot {
   occupancy_pct: number | null;
   temperature_c: number | null;
   is_raining: boolean | null;
-}
-
-/** A city event from the /events endpoint. */
-export interface CityEvent {
-  id: number;
-  event_name: string;
-  event_type: string | null;
-  venue_name: string | null;
-  venue_lat: number | null;
-  venue_lng: number | null;
-  event_date: string;
-  event_time: string | null;
-  expected_attendance: number | null;
 }
 
 /** The initial WebSocket snapshot message. */

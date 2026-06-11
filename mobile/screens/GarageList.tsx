@@ -14,12 +14,14 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { API_URL, WS_URL } from "../config";
 import DestinationSearch from "../components/DestinationSearch";
-import OccupancyBar, { occupancyColor } from "../components/OccupancyBar";
+import { occupancyColor } from "../components/OccupancyBar";
 import RecommendedCard from "../components/RecommendedCard";
 import {
-  enrichAndSortLocations,
   formatDistanceLabel,
-} from "../utils/geo";
+  formatRateShort,
+  useLocale,
+} from "../i18n";
+import { enrichAndSortLocations, formatDistance } from "../utils/geo";
 import {
   AnchorPoint,
   Location,
@@ -55,7 +57,9 @@ interface RowProps {
 }
 
 const LocationRow = React.memo(({ location, sortMode, onPress }: RowProps) => {
+  const { t, locale } = useLocale();
   const color = occupancyColor(location.occupancy_pct);
+  const rateLabel = formatRateShort(location, locale);
 
   return (
     <Pressable
@@ -71,30 +75,35 @@ const LocationRow = React.memo(({ location, sortMode, onPress }: RowProps) => {
           {location.name}
         </Text>
         <Text style={styles.rowMeta}>
-          {location.neighborhood ?? ""}
-          {location.neighborhood && location.distanceKm != null ? "  ·  " : ""}
-          {location.distanceKm != null
-            ? formatDistanceLabel(location.distanceKm, sortMode)
-            : ""}
+          {[
+            location.neighborhood,
+            location.distanceKm != null
+              ? formatDistanceLabel(
+                  location.distanceKm,
+                  sortMode,
+                  locale,
+                  formatDistance,
+                )
+              : null,
+            rateLabel,
+          ]
+            .filter(Boolean)
+            .join("  ·  ")}
         </Text>
-        <OccupancyBar
-          occupancyPct={location.occupancy_pct}
-          freeSpots={location.free_spots}
-          totalSpots={location.total_spots}
-        />
       </View>
 
       <View style={styles.rowRight}>
         <Text style={[styles.freeCount, { color }]}>
           {location.free_spots ?? "—"}
         </Text>
-        <Text style={styles.freeLabel}>free</Text>
+        <Text style={styles.freeLabel}>{t("free")}</Text>
       </View>
     </Pressable>
   );
 });
 
 export default function GarageList({ navigation }: Props) {
+  const { t } = useLocale();
   const [locations, setLocations] = useState<Location[]>([]);
   const [recommended, setRecommended] = useState<Location | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +122,11 @@ export default function GarageList({ navigation }: Props) {
   const anchorRef = useRef<AnchorPoint | null>(null);
   const sortModeRef = useRef<SortMode>("near_me");
   const rawLocationsRef = useRef<Location[]>([]);
+  const yourLocationLabelRef = useRef("");
+
+  useEffect(() => {
+    yourLocationLabelRef.current = t("yourLocation");
+  }, [t]);
 
   useEffect(() => {
     anchorRef.current = anchor;
@@ -167,19 +181,23 @@ export default function GarageList({ navigation }: Props) {
       setAnchor((prev) =>
         prev && sortMode === "destination"
           ? prev
-          : { lat: coords.lat, lng: coords.lng, label: "Your location" },
+          : {
+              lat: coords.lat,
+              lng: coords.lng,
+              label: yourLocationLabelRef.current || t("yourLocation"),
+            },
       );
     })();
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (!userCoords || sortMode !== "near_me") return;
     setAnchor({
       lat: userCoords.lat,
       lng: userCoords.lng,
-      label: "Your location",
+      label: t("yourLocation"),
     });
-  }, [userCoords, sortMode]);
+  }, [userCoords, sortMode, t]);
 
   useEffect(() => {
     if (!anchor) return;
@@ -197,10 +215,10 @@ export default function GarageList({ navigation }: Props) {
       setAnchor({
         lat: userCoords.lat,
         lng: userCoords.lng,
-        label: "Your location",
+        label: t("yourLocation"),
       });
     }
-  }, [userCoords]);
+  }, [userCoords, t]);
 
   const connectWs = useCallback(() => {
     if (wsRef.current) {
@@ -274,11 +292,18 @@ export default function GarageList({ navigation }: Props) {
     [navigation],
   );
 
+  const wsLabel =
+    wsStatus === "live"
+      ? t("wsLive")
+      : wsStatus === "connecting"
+        ? t("wsConnecting")
+        : t("wsReconnecting");
+
   if (loading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#1d4ed8" />
-        <Text style={styles.loadingText}>Loading parking data…</Text>
+        <Text style={styles.loadingText}>{t("loading")}</Text>
       </View>
     );
   }
@@ -291,13 +316,7 @@ export default function GarageList({ navigation }: Props) {
           wsStatus === "live" ? styles.badgeLive : styles.badgeError,
         ]}
       >
-        <Text style={styles.badgeText}>
-          {wsStatus === "live"
-            ? "● Live"
-            : wsStatus === "connecting"
-              ? "● Connecting…"
-              : "● Reconnecting…"}
-        </Text>
+        <Text style={styles.badgeText}>● {wsLabel}</Text>
       </View>
 
       <DestinationSearch
