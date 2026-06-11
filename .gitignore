@@ -58,3 +58,7 @@ playwright-report/
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
 logs/
+
+.claude/
+
+IMPLEMENTATION_PLAN.md

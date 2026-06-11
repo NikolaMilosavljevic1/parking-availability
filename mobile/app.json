@@ -4,7 +4,6 @@
     "slug": "belgrade-parking",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "resizeMode": "contain",
@@ -14,7 +13,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.belgradepark.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Used to calculate your distance to parking locations."
+        "NSLocationWhenInUseUsageDescription": "Used to calculate your distance to parking locations.",
+        "LSApplicationQueriesSchemes": ["comgooglemaps", "waze", "maps"]
       }
     },
     "android": {

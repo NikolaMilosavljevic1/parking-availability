@@ -40,7 +40,9 @@ async def get_locations(pool: asyncpg.Pool) -> list[asyncpg.Record]:
                 id, name, address, location_type, total_spots,
                 latitude, longitude, neighborhood,
                 dist_to_arena_km, dist_to_hram_km, dist_to_marakana_km,
-                dist_to_partizan_km, dist_to_narodno_pozoriste_km, dist_to_sava_centar_km
+                dist_to_partizan_km, dist_to_narodno_pozoriste_km, dist_to_sava_centar_km,
+                price_first_hour_rsd, price_extra_hour_rsd, price_daily_rsd,
+                hours_note, pricing_note
             FROM parking_locations
             ORDER BY name
         """)
@@ -54,7 +56,9 @@ async def get_location(pool: asyncpg.Pool, location_id: str) -> asyncpg.Record |
                 id, name, address, location_type, total_spots,
                 latitude, longitude, neighborhood,
                 dist_to_arena_km, dist_to_hram_km, dist_to_marakana_km,
-                dist_to_partizan_km, dist_to_narodno_pozoriste_km, dist_to_sava_centar_km
+                dist_to_partizan_km, dist_to_narodno_pozoriste_km, dist_to_sava_centar_km,
+                price_first_hour_rsd, price_extra_hour_rsd, price_daily_rsd,
+                hours_note, pricing_note
             FROM parking_locations
             WHERE id = $1
         """, location_id)

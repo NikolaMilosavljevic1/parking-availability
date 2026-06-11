@@ -53,7 +53,6 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("belvil",         "belvil"),
     ("bezanijska",     "bezanijska-kosa"),
     ("bežanijska",     "bezanijska-kosa"),
-    ("blok 43",        "blok-43"),
     ("cukarica",       "cukarica"),
     ("čukarica",       "cukarica"),
     ("cvetkova",       "cvetkova-pijaca"),
@@ -75,6 +74,11 @@ _NAME_TO_ID: list[tuple[str, str]] = [
     ("viška",          "viska"),
     ("vma",            "vma"),
 ]
+
+# Display names containing these fragments are skipped (non-public / no live data)
+_SKIPPED_NAME_FRAGMENTS: tuple[str, ...] = (
+    "blok 43",
+)
 
 # Regex to extract lat,lng from Google Maps href
 # e.g. https://www.google.com/maps/place/44.801441,20.474145
@@ -182,6 +186,11 @@ def _parse_html(html: str) -> list[ParkingReading]:
         raw_name = a_tag.get_text(strip=True)
         free_text = span_tag.get_text(strip=True)
 
+        raw_lower = raw_name.lower()
+        if any(frag in raw_lower for frag in _SKIPPED_NAME_FRAGMENTS):
+            logger.debug("Skipping non-public location %r", raw_name)
+            continue
+
         # Parse free spots
         if not free_text.isdigit():
             logger.debug("Non-numeric count %r for %r — skipping", free_text, raw_name)
@@ -199,7 +208,6 @@ def _parse_html(html: str) -> list[ParkingReading]:
         # Resolve to our location_id
         loc_id = _resolve_id(raw_name)
         if loc_id is None:
-            # Still record it — we'll upsert with the raw name as a new location
             loc_id = _slugify(raw_name)
             logger.info("New/unmapped location %r → generated id %r", raw_name, loc_id)
 

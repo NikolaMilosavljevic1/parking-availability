@@ -4,14 +4,23 @@ event_scraper.py — Daily city event scraping for Belgrade.
 Sources
 -------
     1. Belgrade Arena          https://arenabeograd.com/listadogadjaja/
-    2. FK Crvena zvezda        JS-rendered — graceful fallback (use POST /events)
-    3. FK Partizan             JS-rendered — graceful fallback (use POST /events)
+    2. FK Crvena zvezda        Playwright → crvenazvezdafk.com (home games at Marakana)
+    3. FK Partizan             Playwright → partizan.rs/utakmice (JS-rendered)
     4. Hram Svetog Save        hardcoded Orthodox calendar dates
     5. Sava Center             https://www.savacenter.net/
     6. Narodno pozorište       https://www.narodnopozoriste.rs/repertoar/
+    7. MTS Dvorana             https://tickets.rs/venue/mts_dvorana_21
 
-All scrapers fail gracefully — if a source can't be parsed, it logs a
-warning and returns an empty list. The other sources still run.
+Storage vs API
+--------------
+    Scrapers keep events up to MAX_STORAGE_DAYS ahead in the DB.
+    The mobile API serves only the next 7 days (api/db.py get_events).
+
+Football clubs
+--------------
+    Crvena zvezda and Partizan sites are JS-rendered; httpx alone returns
+    skeleton HTML. Playwright is used (see parking_scraper.py). If a club
+    site changes layout, scrapers return [] — use POST /events as fallback.
 
 Public API
 ----------
@@ -43,6 +52,12 @@ _HEADERS = {
     "Accept-Language": "sr,en;q=0.9",
 }
 _TIMEOUT = httpx.Timeout(15.0)
+
+# DB may store events further out; API filters to 7 days for mobile.
+MAX_STORAGE_DAYS = 365
+
+_MARAKANA = (44.7836, 20.4722)
+_PARTIZAN_STADIUM = (44.7863, 20.4480)
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +117,7 @@ def _parse_date_text(text: str) -> Optional[date]:
     """
     Parse Serbian date text in various formats:
       '15. april 2025'  'april 26'  '15.04.2025'  '2025-04-15'
-      'Сре1апр'         'апр 26'    '26. апр 2025'
+      'Сре1апр'         'апр 26'    '26. апр 2025' 
     Returns None if parsing fails.
     """
     text = text.strip()
@@ -123,6 +138,22 @@ def _parse_date_text(text: str) -> Optional[date]:
         except ValueError:
             pass
 
+    # tickets.rs: "23. oktobar 2026 20:00"
+    month_pattern = "|".join(sorted(_SR_MONTHS.keys(), key=len, reverse=True))
+    m = re.search(
+        rf"(\d{{1,2}})\.\s*({month_pattern})\s+(\d{{4}})",
+        text,
+        re.IGNORECASE,
+    )
+    if m:
+        month_str = m.group(2).lower().rstrip(".")
+        month_num = _SR_MONTHS.get(month_str)
+        if month_num:
+            try:
+                return date(int(m.group(3)), month_num, int(m.group(1)))
+            except ValueError:
+                pass
+
     # "MonthName DD [YYYY]" or "DD. MonthName [YYYY]" or "DD MonthName" (Latin + Cyrillic)
     # Also handles no-space variants like "1апр" from Narodno pozoriste.
     # Build a pattern from all known month names (longest first to avoid partial matches)
@@ -135,7 +166,7 @@ def _parse_date_text(text: str) -> Optional[date]:
     )
     if m:
         day_pre   = m.group(1)
-        month_str = m.group(2).lower()
+        month_str = m.group(2).lower().rstrip(".")
         day_post  = m.group(3)
         year_str  = m.group(4)
 
@@ -154,9 +185,194 @@ def _parse_date_text(text: str) -> Optional[date]:
     return None
 
 
-def _is_future(d: date, days_ahead: int = 90) -> bool:
+def _is_upcoming(d: date, days_ahead: int = MAX_STORAGE_DAYS) -> bool:
+    """True if event is today or later, within DB storage horizon."""
     today = date.today()
     return today <= d <= today + timedelta(days=days_ahead)
+
+
+# Back-compat alias used in a few call sites
+_is_future = _is_upcoming
+
+
+_SPORTS_RE = re.compile(
+    r"\b(košark|kosark|basketball|aba\s*liga|euroleague|euro\s*cup|"
+    r"fudbal|football|utakmic|meč|mec|derbi|superliga|šampion|sampion|"
+    r"liga|odbojk|rukomet|hokej|tenis|tennis|mma|boks|boxing|atletik|"
+    r"vs\.?|protiv)\b",
+    re.IGNORECASE,
+)
+_THEATRE_RE = re.compile(
+    r"\b(opera|balet|ballet|pozorišt|pozorist|predstav|theatre|theater|"
+    r"drama|musical|musikal)\b",
+    re.IGNORECASE,
+)
+_CONCERT_RE = re.compile(
+    r"\b(koncert|concert|tour|live|gig|recital|soprano|belcanto)\b",
+    re.IGNORECASE,
+)
+_FESTIVAL_RE = re.compile(
+    r"\b(festival|fest)\b",
+    re.IGNORECASE,
+)
+_RELIGIOUS_RE = re.compile(
+    r"\b(božić|bozic|vaskrs|uskrs|slava|liturgij|crkva|hram|orthodox|"
+    r"epiphany|vidovdan|gospojin)\b",
+    re.IGNORECASE,
+)
+
+
+def _infer_event_type(name: str, default: str = "other") -> str:
+    """Guess event_type from title keywords; falls back to default."""
+    if _SPORTS_RE.search(name):
+        return "sports"
+    if _RELIGIOUS_RE.search(name):
+        return "religious"
+    if _THEATRE_RE.search(name):
+        return "theatre"
+    if _FESTIVAL_RE.search(name):
+        return "festival"
+    if _CONCERT_RE.search(name):
+        return "concert"
+    return default
+
+
+async def _fetch_html_playwright(url: str, timeout_ms: int = 30_000) -> Optional[str]:
+    """Fetch JS-rendered page HTML via Playwright (Chromium)."""
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        logger.warning("Playwright not installed — cannot fetch %s", url)
+        return None
+
+    try:
+        async with async_playwright() as pw:
+            browser = await pw.chromium.launch(headless=True)
+            try:
+                context = await browser.new_context(
+                    user_agent=_HEADERS["User-Agent"],
+                    locale="sr-Latn",
+                )
+                page = await context.new_page()
+                await page.route(
+                    "**/*",
+                    lambda route: route.abort()
+                    if route.request.resource_type in {"image", "media", "font"}
+                    else route.continue_(),
+                )
+                await page.goto(url, wait_until="networkidle", timeout=timeout_ms)
+                await page.wait_for_timeout(2_000)
+                return await page.content()
+            finally:
+                await browser.close()
+    except Exception as exc:
+        logger.warning("Playwright fetch failed for %s: %s", url, exc)
+        return None
+
+
+_FK_DATE_RE = re.compile(r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})")
+
+
+def _parse_fk_dot_date(text: str) -> Optional[date]:
+    """Parse first DD.MM.YYYY in text (negative lookbehind avoids 22.5 → 2.5)."""
+    m = _FK_DATE_RE.search(text)
+    if not m:
+        return None
+    try:
+        return date(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+    except ValueError:
+        return None
+
+
+def _fk_date_chunks(text: str) -> list[str]:
+    """Split text into blocks starting at each standalone DD.MM.YYYY date."""
+    matches = list(_FK_DATE_RE.finditer(text))
+    chunks: list[str] = []
+    for i, m in enumerate(matches):
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+        chunks.append(text[m.start():end])
+    return chunks
+
+
+def _extract_fk_opponent(lines: list[str], club_upper: str) -> Optional[str]:
+    skip_words = {
+        club_upper, "KUPI KARTE", "KUPI KARTE", "MEČ U TOKU", "MEC U TOKU",
+        "RASPORED", "REZULTATI", "SUPERLIGA", "KUP", "PRIJATELJSKA UTAKMICA",
+        "KUPI KARTE", "LIVE", "FT", "HT",
+    }
+    score_token = re.compile(r"^[\d\-:.'()\s]+$")
+
+    for i, ln in enumerate(lines):
+        if club_upper not in ln.upper():
+            continue
+        for j in range(i + 1, min(i + 12, len(lines))):
+            cand = lines[j]
+            cand_up = cand.upper()
+            if (
+                len(cand) >= 3
+                and club_upper not in cand_up
+                and not score_token.fullmatch(cand)
+                and cand_up not in skip_words
+                and "STADION" not in cand_up
+                and "KUPI" not in cand_up
+            ):
+                return cand
+    return None
+
+
+def _parse_home_football_fixtures(
+    html: str,
+    *,
+    club_name: str,
+    home_stadium_markers: tuple[str, ...],
+    venue_name: str,
+    venue_lat: float,
+    venue_lng: float,
+    attendance: int = 15000,
+) -> list[dict]:
+    """
+    Parse home fixtures from FK club schedule HTML (after Playwright render).
+    Looks for date + home stadium marker + club name in the same text block.
+    """
+    events: list[dict] = []
+    seen: set[tuple[date, str]] = set()
+    text = BeautifulSoup(html, "lxml").get_text("\n", strip=True)
+    club_upper = club_name.upper()
+
+    for chunk in _fk_date_chunks(text):
+        upper = chunk.upper()
+        if club_upper not in upper:
+            continue
+        if not any(marker in upper for marker in home_stadium_markers):
+            continue
+
+        event_date = _parse_fk_dot_date(chunk)
+        if not event_date or not _is_upcoming(event_date):
+            continue
+
+        lines = [ln.strip() for ln in chunk.split("\n") if ln.strip()]
+        opponent = _extract_fk_opponent(lines, club_upper)
+        if not opponent:
+            continue
+
+        key = (event_date, opponent.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+
+        title = f"{club_name} vs {opponent}"
+        events.append({
+            "event_name":          title[:200],
+            "event_type":          _infer_event_type(title, "sports"),
+            "venue_name":          venue_name,
+            "venue_lat":           venue_lat,
+            "venue_lng":           venue_lng,
+            "event_date":          event_date,
+            "event_time":          None,
+            "expected_attendance": attendance,
+        })
+
+    return events
 
 
 # ---------------------------------------------------------------------------
@@ -202,12 +418,12 @@ async def _scrape_arena() -> list[dict]:
                 continue
             date_text = date_el.get_text(strip=True)
             event_date = _parse_date_text(date_text)
-            if not event_date or not _is_future(event_date):
+            if not event_date or not _is_upcoming(event_date):
                 continue
 
             events.append({
                 "event_name":          name[:200],
-                "event_type":          "concert",
+                "event_type":          _infer_event_type(name, "concert"),
                 "venue_name":          "Belgrade Arena",
                 "venue_lat":           44.8065,
                 "venue_lng":           20.4084,
@@ -223,25 +439,65 @@ async def _scrape_arena() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Source 2 — FK Crvena zvezda
-# Site is JS-rendered (React). httpx gets only a skeleton page.
-# Returns empty list — use POST /events to add matches manually.
+# Source 2 — FK Crvena zvezda (Playwright — site is JS-rendered)
+# Schedule: https://www.crvenazvezdafk.com/sr-latn/raspored-rezultati
+# Only home games at Rajko Mitic (Marakana) are stored.
 # ---------------------------------------------------------------------------
 
 async def _scrape_crvena_zvezda() -> list[dict]:
-    logger.info("Crvena zvezda: JS-rendered site — skipping automatic scrape (use POST /events)")
-    return []
+    url = "https://www.crvenazvezdafk.com/sr-latn/raspored-rezultati"
+    html = await _fetch_html_playwright(url)
+    if not html:
+        logger.info(
+            "Crvena zvezda: Playwright unavailable or fetch failed — "
+            "use POST /events for manual entry",
+        )
+        return []
+
+    events = _parse_home_football_fixtures(
+        html,
+        club_name="Crvena zvezda",
+        home_stadium_markers=("STADION RAJKO MITI", "RAJKO MITIĆ", "RAJKO MITIC"),
+        venue_name="Stadion Rajko Mitic (Marakana)",
+        venue_lat=_MARAKANA[0],
+        venue_lng=_MARAKANA[1],
+        attendance=25000,
+    )
+    logger.info("Crvena zvezda: scraped %d home fixtures", len(events))
+    return events
 
 
 # ---------------------------------------------------------------------------
-# Source 3 — FK Partizan
-# Site is JS-rendered (shows "Učitavanje utakmice…").
-# Returns empty list — use POST /events to add matches manually.
+# Source 3 — FK Partizan (Playwright — partizan.rs/utakmice is JS-rendered)
+# Only home games at Stadion Partizana are stored.
 # ---------------------------------------------------------------------------
 
 async def _scrape_partizan() -> list[dict]:
-    logger.info("Partizan: JS-rendered site — skipping automatic scrape (use POST /events)")
-    return []
+    url = "https://partizan.rs/utakmice"
+    html = await _fetch_html_playwright(url)
+    if not html:
+        logger.info(
+            "Partizan: Playwright unavailable or fetch failed — "
+            "use POST /events for manual entry",
+        )
+        return []
+
+    events = _parse_home_football_fixtures(
+        html,
+        club_name="Partizan",
+        home_stadium_markers=(
+            "STADION PARTIZANA",
+            "STADION FK PARTIZANA",
+            "PARTIZAN STADIUM",
+            "STADION PARTIZAN",
+        ),
+        venue_name="Stadion Partizana",
+        venue_lat=_PARTIZAN_STADIUM[0],
+        venue_lng=_PARTIZAN_STADIUM[1],
+        attendance=18000,
+    )
+    logger.info("Partizan: scraped %d home fixtures", len(events))
+    return events
 
 
 # ---------------------------------------------------------------------------
@@ -290,7 +546,7 @@ def _get_hram_events() -> list[dict]:
         ]
 
         for event_date, name, attendance in fixed:
-            if _is_future(event_date, days_ahead=365):
+            if _is_upcoming(event_date):
                 events.append({
                     "event_name":          name,
                     "event_type":          "religious",
@@ -355,7 +611,7 @@ async def _scrape_sava_center() -> list[dict]:
             for el in card.find_all(["time", "span", "p", "div"]):
                 raw = el.get("datetime", "") or el.get_text(strip=True)
                 d = _parse_date_text(raw)
-                if d and _is_future(d):
+                if d and _is_upcoming(d):
                     date_found = d
                     break
             if not date_found:
@@ -363,7 +619,7 @@ async def _scrape_sava_center() -> list[dict]:
 
             events.append({
                 "event_name":          name[:200],
-                "event_type":          "other",
+                "event_type":          _infer_event_type(name, "other"),
                 "venue_name":          "Sava Centar",
                 "venue_lat":           44.8034,
                 "venue_lng":           20.4247,
@@ -432,7 +688,7 @@ async def _scrape_narodno_pozoriste() -> list[dict]:
                 continue
             date_text = date_el.get_text(strip=True)
             event_date = _parse_np_date(date_text)
-            if not event_date or not _is_future(event_date):
+            if not event_date or not _is_upcoming(event_date):
                 continue
 
             # Remove the date block from the entry to isolate the show name
@@ -464,6 +720,99 @@ async def _scrape_narodno_pozoriste() -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Source 7 — MTS Dvorana (via tickets.rs mirror — mtsdvorana.rs blocks bots)
+# tickets.rs: title in <h5>, date as "DD. mesec YYYY HH:MM" in parent block
+# ---------------------------------------------------------------------------
+
+_MTS_VENUE = (44.8133, 20.4628)
+_MTS_SKIP_TITLES = {
+    "top izbor", "ostala mesta u blizini", "mts dvorana",
+    "akademsko pozorište krsmanac", "lisabon bar", "pop up galerija",
+}
+
+
+def _parse_mts_from_h5(h5, seen: set[tuple[str, date]]) -> Optional[dict]:
+    import datetime as dt_mod
+
+    name = h5.get_text(strip=True)
+    if not name or len(name) < 3:
+        return None
+    if name.lower() in _MTS_SKIP_TITLES:
+        return None
+
+    block = h5.parent
+    date_found = None
+    time_found = None
+    raw_block = ""
+
+    for _ in range(4):
+        if block is None:
+            break
+        raw_block = block.get_text(" ", strip=True)
+        date_found = _parse_date_text(raw_block)
+        if date_found:
+            t_match = re.search(r"\b(\d{1,2}):(\d{2})\b", raw_block)
+            if t_match:
+                try:
+                    time_found = dt_mod.time(
+                        int(t_match.group(1)), int(t_match.group(2)),
+                    )
+                except ValueError:
+                    pass
+            break
+        block = block.parent
+
+    if not date_found or not _is_upcoming(date_found):
+        return None
+
+    key = (name.lower(), date_found)
+    if key in seen:
+        return None
+    seen.add(key)
+
+    return {
+        "event_name":          name[:200],
+        "event_type":          _infer_event_type(name, "concert"),
+        "venue_name":          "MTS Dvorana",
+        "venue_lat":           _MTS_VENUE[0],
+        "venue_lng":           _MTS_VENUE[1],
+        "event_date":          date_found,
+        "event_time":          time_found,
+        "expected_attendance": 2500,
+    }
+
+
+async def _scrape_mts_dvorana() -> list[dict]:
+    url = "https://tickets.rs/venue/mts_dvorana_21"
+    events: list[dict] = []
+    seen: set[tuple[str, date]] = set()
+
+    try:
+        async with httpx.AsyncClient(
+            headers=_HEADERS, timeout=_TIMEOUT, follow_redirects=True,
+        ) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+    except Exception as exc:
+        logger.warning("MTS Dvorana (tickets.rs): fetch failed: %s", exc)
+        return []
+
+    soup = BeautifulSoup(resp.text, "lxml")
+
+    # Primary path: h5 titles (tickets.rs listing layout)
+    for h5 in soup.find_all("h5"):
+        try:
+            ev = _parse_mts_from_h5(h5, seen)
+            if ev:
+                events.append(ev)
+        except Exception as exc:
+            logger.debug("MTS Dvorana: error parsing h5: %s", exc)
+
+    logger.info("MTS Dvorana: scraped %d events", len(events))
+    return events
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -472,9 +821,19 @@ async def scrape_all_events() -> list[dict]:
     Run all event scrapers concurrently.
     Individual failures are logged and ignored — other sources still run.
     """
+    events, _counts = await scrape_all_events_with_counts()
+    return events
+
+
+async def scrape_all_events_with_counts() -> tuple[list[dict], dict[str, int]]:
+    """
+    Run all event scrapers concurrently.
+    Returns (all_events, per_source_counts).
+    """
     logger.info("Starting daily event scrape from all sources ...")
 
     hram_events = _get_hram_events()
+    counts: dict[str, int] = {"Hram": len(hram_events)}
 
     results = await asyncio.gather(
         _scrape_arena(),
@@ -482,20 +841,30 @@ async def scrape_all_events() -> list[dict]:
         _scrape_partizan(),
         _scrape_sava_center(),
         _scrape_narodno_pozoriste(),
+        _scrape_mts_dvorana(),
         return_exceptions=True,
     )
 
-    all_events = list(hram_events)
-    source_names = ["Arena", "Crvena zvezda", "Partizan", "Sava Center", "Narodno pozoriste"]
+    source_names = [
+        "Arena", "Crvena zvezda", "Partizan",
+        "Sava Center", "Narodno pozoriste", "MTS Dvorana",
+    ]
 
+    all_events = list(hram_events)
     for name, result in zip(source_names, results):
         if isinstance(result, Exception):
             logger.error("Event source '%s' raised: %s", name, result)
+            counts[name] = 0
         elif isinstance(result, list):
+            counts[name] = len(result)
             all_events.extend(result)
 
-    logger.info("Event scrape complete: %d total events collected", len(all_events))
-    return all_events
+    logger.info(
+        "Event scrape complete: %d total (%s)",
+        len(all_events),
+        ", ".join(f"{k}={v}" for k, v in counts.items()),
+    )
+    return all_events, counts
 
 
 # ---------------------------------------------------------------------------
@@ -506,12 +875,12 @@ _INSERT_EVENT_SQL = """
 INSERT INTO city_events
     (event_name, event_type, venue_name, venue_lat, venue_lng,
      event_date, event_time, expected_attendance, scraped_at)
-SELECT $1, $2, $3, $4, $5, $6, $7, $8, NOW()
+SELECT $1::varchar, $2::varchar, $3::varchar, $4, $5, $6, $7, $8, NOW()
 WHERE NOT EXISTS (
     SELECT 1 FROM city_events
-    WHERE event_name = $1
+    WHERE event_name = $1::varchar
       AND event_date = $6
-      AND COALESCE(venue_name, '') = COALESCE($3, '')
+      AND COALESCE(venue_name, '') = COALESCE($3::varchar, '')
 )
 """
 
@@ -550,11 +919,26 @@ async def save_events(pool: asyncpg.Pool, events: list[dict]) -> int:
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    import argparse
+    import os
     import sys
     import io
 
+    from dotenv import load_dotenv
+
     # Force UTF-8 on Windows console
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
+    load_dotenv()
+
+    parser = argparse.ArgumentParser(description="Scrape Belgrade city events")
+    parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Persist scraped events to PostgreSQL (requires DATABASE_URL)",
+    )
+    args = parser.parse_args()
+    should_save = args.save or bool(os.environ.get("DATABASE_URL"))
 
     logging.basicConfig(
         level=logging.INFO,
@@ -563,7 +947,12 @@ if __name__ == "__main__":
     )
 
     async def _test():
-        events = await scrape_all_events()
+        events, counts = await scrape_all_events_with_counts()
+        print("\nCounts per source:")
+        for source, n in counts.items():
+            print(f"  {source:<22} {n:>4}")
+        print(f"  {'TOTAL':<22} {len(events):>4}")
+
         print(f"\n{'Date':<12} {'Type':<12} {'Venue':<35} {'Attend':>8}  Name")
         print("-" * 100)
         for e in sorted(events, key=lambda x: x["event_date"]):
@@ -574,6 +963,17 @@ if __name__ == "__main__":
                 f"{(e['expected_attendance'] or 0):>8}  "
                 f"{e['event_name']}"
             )
-        print(f"\nTotal: {len(events)} events")
+
+        if should_save:
+            from db import create_pool
+
+            pool = await create_pool()
+            try:
+                inserted = await save_events(pool, events)
+                print(f"\nSaved to DB: {inserted}/{len(events)} new events inserted")
+            finally:
+                await pool.close()
+        elif args.save:
+            print("\n--save requested but DATABASE_URL is not set — skipped DB write")
 
     asyncio.run(_test())
