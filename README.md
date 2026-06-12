@@ -113,6 +113,20 @@ npx expo start --clear
 
 ---
 
+## Deploy APK (use off home WiFi)
+
+To install a standalone Android app that works on mobile data (not Expo Go):
+
+1. Run backend: `docker compose up -d`
+2. Expose API: `.\scripts\start-tunnel.ps1` (free Cloudflare Tunnel)
+3. Set EAS env vars with your tunnel URL
+4. Build APK: `cd mobile && eas build --platform android --profile preview`
+5. Download APK from [expo.dev](https://expo.dev) and install on your phone
+
+Full step-by-step: **[DEPLOY.md](DEPLOY.md)**
+
+---
+
 ## Architecture
 
 ```
