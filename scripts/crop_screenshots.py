@@ -26,6 +26,8 @@ CROPS = {
     "detail": {"top": 68, "bottom": 40},
 }
 
+README_WIDTH = 280
+
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
@@ -38,9 +40,12 @@ def main() -> None:
         w, h = im.size
         c = CROPS[kind]
         cropped = im.crop((0, c["top"], w, h - c["bottom"]))
+        cw, ch = cropped.size
+        nh = int(ch * README_WIDTH / cw)
+        resized = cropped.resize((README_WIDTH, nh), Image.Resampling.LANCZOS)
         out_path = OUT / out_name
-        cropped.save(out_path, optimize=True)
-        print(f"{out_name}: {im.size} -> {cropped.size}")
+        resized.save(out_path, optimize=True)
+        print(f"{out_name}: {im.size} -> {cw}x{ch} crop -> {README_WIDTH}x{nh}")
 
 
 if __name__ == "__main__":

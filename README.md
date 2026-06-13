@@ -10,17 +10,24 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
 
 ## Screenshots
 
-| Destination search & recommended pick | Search results |
-|:---:|:---:|
-| ![List with destination and recommended garage](docs/screenshots/01-list-destination-recommended.png) | ![Destination search results](docs/screenshots/02-search-results.png) |
+<p align="center">
+  <img src="docs/screenshots/01-list-destination-recommended.png" width="280" alt="Destination search and recommended garage" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/02-search-results.png" width="280" alt="Destination search results" />
+</p>
+<p align="center"><sub>Destination search & recommended pick · Search results</sub></p>
 
-| List sorted by distance to destination | Parking lot detail — availability & cost |
-|:---:|:---:|
-| ![List near Trg republike](docs/screenshots/03-list-trg-republike.png) | ![Parking lot detail with live availability](docs/screenshots/04-detail-bezanijska.png) |
+<p align="center">
+  <img src="docs/screenshots/03-list-trg-republike.png" width="280" alt="List near Trg republike" />
+  &nbsp;&nbsp;
+  <img src="docs/screenshots/04-detail-bezanijska.png" width="280" alt="Parking lot detail with live availability" />
+</p>
+<p align="center"><sub>List sorted by destination · Availability & cost estimate</sub></p>
 
-| Covered garage — live availability & daily pricing |
-|:---:|
-| ![Garage detail Obilićev venac](docs/screenshots/05-detail-obilicev-venac.png) |
+<p align="center">
+  <img src="docs/screenshots/05-detail-obilicev-venac.png" width="280" alt="Garage detail Obilićev venac" />
+</p>
+<p align="center"><sub>Covered garage — live availability & daily pricing</sub></p>
 
 Live WebSocket updates, GPS distance, destination search, smart recommendation, stay-duration cost estimates, JKP rates (RSD), Serbian / English UI.
 
