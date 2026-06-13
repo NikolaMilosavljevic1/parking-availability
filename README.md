@@ -4,6 +4,26 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
 
 **Disclaimer:** This project is not affiliated with or endorsed by JKP Parking Servis.
 
+**Hosting:** Demo and personal use only — the API runs on my machine when needed, not as a 24/7 public service.
+
+---
+
+## Screenshots
+
+| Destination search & recommended pick | Search results |
+|:---:|:---:|
+| ![List with destination and recommended garage](docs/screenshots/01-list-destination-recommended.png) | ![Destination search results](docs/screenshots/02-search-results.png) |
+
+| List sorted by distance to destination | Parking lot detail — availability & cost |
+|:---:|:---:|
+| ![List near Trg republike](docs/screenshots/03-list-trg-republike.png) | ![Parking lot detail with live availability](docs/screenshots/04-detail-bezanijska.png) |
+
+| Covered garage — live availability & daily pricing |
+|:---:|
+| ![Garage detail Obilićev venac](docs/screenshots/05-detail-obilicev-venac.png) |
+
+Live WebSocket updates, GPS distance, destination search, smart recommendation, stay-duration cost estimates, JKP rates (RSD), Serbian / English UI.
+
 ---
 
 ## What it does
