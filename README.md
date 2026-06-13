@@ -10,24 +10,34 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/screenshots/01-list-destination-recommended.png" width="280" alt="Destination search and recommended garage" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/02-search-results.png" width="280" alt="Destination search results" />
-</p>
-<p align="center"><sub>Destination search & recommended pick · Search results</sub></p>
-
-<p align="center">
-  <img src="docs/screenshots/03-list-trg-republike.png" width="280" alt="List near Trg republike" />
-  &nbsp;&nbsp;
-  <img src="docs/screenshots/04-detail-bezanijska.png" width="280" alt="Parking lot detail with live availability" />
-</p>
-<p align="center"><sub>List sorted by destination · Availability & cost estimate</sub></p>
-
-<p align="center">
-  <img src="docs/screenshots/05-detail-obilicev-venac.png" width="280" alt="Garage detail Obilićev venac" />
-</p>
-<p align="center"><sub>Covered garage — live availability & daily pricing</sub></p>
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/01-list-destination-recommended.png" width="240" alt="Destination search and recommended garage" />
+      <p align="center"><em>Destination search & recommended pick</em></p>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/02-search-results.png" width="240" alt="Destination search results" />
+      <p align="center"><em>Search results</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" valign="top">
+      <img src="docs/screenshots/03-list-trg-republike.png" width="240" alt="List near Trg republike" />
+      <p align="center"><em>List sorted by destination</em></p>
+    </td>
+    <td align="center" valign="top">
+      <img src="docs/screenshots/04-detail-bezanijska.png" width="240" alt="Parking lot detail with live availability" />
+      <p align="center"><em>Availability & cost estimate</em></p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center" valign="top">
+      <img src="docs/screenshots/05-detail-obilicev-venac.png" width="240" alt="Garage detail Obilićev venac" />
+      <p align="center"><em>Covered garage — live availability & daily pricing</em></p>
+    </td>
+  </tr>
+</table>
 
 Live WebSocket updates, GPS distance, destination search, smart recommendation, stay-duration cost estimates, JKP rates (RSD), Serbian / English UI.
 
