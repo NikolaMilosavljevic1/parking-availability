@@ -10,7 +10,9 @@ import {
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { API_URL } from "../config";
+import CircularOccupancy from "../components/CircularOccupancy";
 import NavigationPicker from "../components/NavigationPicker";
+import SpotPieChart from "../components/SpotPieChart";
 import StayDurationPicker from "../components/StayDurationPicker";
 import { occupancyColor } from "../components/OccupancyBar";
 import {
@@ -109,6 +111,13 @@ export default function GarageDetail({ route }: Props) {
               </Text>
             )}
           </View>
+        </View>
+        <View style={styles.chartsRow}>
+          <CircularOccupancy occupancyPct={location.occupancy_pct} />
+          <SpotPieChart
+            freeSpots={location.free_spots}
+            totalSpots={location.total_spots}
+          />
         </View>
         {demandHint && (
           <View style={styles.demandBanner}>
@@ -266,6 +275,10 @@ const styles = StyleSheet.create({
   updatedAt: {
     fontSize: 11,
     color: "#9ca3af",
+  },
+  chartsRow: {
+    marginTop: 16,
+    alignItems: "center",
   },
   demandBanner: {
     marginTop: 14,

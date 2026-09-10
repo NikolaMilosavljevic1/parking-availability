@@ -14,8 +14,10 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 import { API_URL, WS_URL } from "../config";
 import DestinationSearch from "../components/DestinationSearch";
+import GarageMap from "../components/GarageMap";
 import { occupancyColor } from "../components/OccupancyBar";
 import RecommendedCard from "../components/RecommendedCard";
+import ViewModeToggle, { ViewMode } from "../components/ViewModeToggle";
 import {
   formatDistanceLabel,
   formatRateShort,
@@ -112,6 +114,7 @@ export default function GarageList({ navigation }: Props) {
     "connecting",
   );
   const [sortMode, setSortMode] = useState<SortMode>("near_me");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [anchor, setAnchor] = useState<AnchorPoint | null>(null);
   const [userCoords, setUserCoords] = useState<{
     lat: number;
@@ -327,33 +330,45 @@ export default function GarageList({ navigation }: Props) {
         onClearDestination={handleClearDestination}
       />
 
-      {recommended && (
-        <RecommendedCard
-          location={recommended}
-          onPress={() => navigateToDetail(recommended)}
-        />
-      )}
+      <ViewModeToggle value={viewMode} onChange={setViewMode} />
 
-      <FlatList
-        data={locations}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }: { item: Location }) => (
-          <LocationRow
-            location={item}
-            sortMode={sortMode}
-            onPress={() => navigateToDetail(item)}
+      {viewMode === "map" ? (
+        <GarageMap
+          locations={locations}
+          userCoords={userCoords}
+          onSelect={navigateToDetail}
+        />
+      ) : (
+        <>
+          {recommended && (
+            <RecommendedCard
+              location={recommended}
+              onPress={() => navigateToDetail(recommended)}
+            />
+          )}
+
+          <FlatList
+            data={locations}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }: { item: Location }) => (
+              <LocationRow
+                location={item}
+                sortMode={sortMode}
+                onPress={() => navigateToDetail(item)}
+              />
+            )}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor="#1d4ed8"
+              />
+            }
+            contentContainerStyle={styles.list}
+            ItemSeparatorComponent={() => <View style={styles.separator} />}
           />
-        )}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#1d4ed8"
-          />
-        }
-        contentContainerStyle={styles.list}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
+        </>
+      )}
     </View>
   );
 }

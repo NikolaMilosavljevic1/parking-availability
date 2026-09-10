@@ -66,6 +66,17 @@ export const en = {
   noData: 'No data',
   freeCount: '{free} free',
   freeOfTotal: '{free} / {total} free',
+  occupancy: 'Occupancy',
+  occupied: 'occupied',
+  spotsBreakdown: 'Free vs occupied',
+
+  // List / map
+  viewList: 'List',
+  viewMap: 'Map',
+  youAreHere: 'You are here',
+  mapLegendLow: 'Plenty of space',
+  mapLegendMid: 'Filling up',
+  mapLegendHigh: 'Almost full',
 
   // Distance
   toDestination: '{distance} to destination',

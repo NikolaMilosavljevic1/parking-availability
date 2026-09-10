@@ -62,6 +62,16 @@ export const srLatn: Record<StringKey, string> = {
   noData: 'Nema podataka',
   freeCount: '{free} slobodno',
   freeOfTotal: '{free} / {total} slobodno',
+  occupancy: 'Zauzetost',
+  occupied: 'zauzeto',
+  spotsBreakdown: 'Slobodno i zauzeto',
+
+  viewList: 'Lista',
+  viewMap: 'Mapa',
+  youAreHere: 'Vi ste ovde',
+  mapLegendLow: 'Dosta mesta',
+  mapLegendMid: 'Umerno puno',
+  mapLegendHigh: 'Skoro puno',
 
   toDestination: '{distance} do destinacije',
 

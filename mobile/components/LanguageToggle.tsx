@@ -1,66 +1,44 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { useLocale, type Locale } from '../i18n';
+import { useLocale } from '../i18n';
 
+/** Shown only when the phone language is Serbian: switch to English, or back to Serbian. */
 export default function LanguageToggle() {
-  const { locale, setLocale } = useLocale();
+  const { locale, systemLocale, setLocale } = useLocale();
 
-  return (
-    <View style={styles.row}>
-      <ToggleButton
-        label="SR"
-        active={locale === 'sr-Latn'}
-        onPress={() => setLocale('sr-Latn')}
-      />
-      <ToggleButton
-        label="EN"
-        active={locale === 'en'}
-        onPress={() => setLocale('en')}
-      />
-    </View>
-  );
-}
+  if (systemLocale !== 'sr-Latn') {
+    return null;
+  }
 
-function ToggleButton({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
+  const showingEnglish = locale === 'en';
+
   return (
     <Pressable
-      onPress={onPress}
-      style={[styles.btn, active && styles.btnActive]}
+      onPress={() => setLocale(showingEnglish ? 'sr-Latn' : 'en')}
+      style={[styles.btn, showingEnglish && styles.btnActive]}
       accessibilityRole="button"
-      accessibilityState={{ selected: active }}
     >
-      <Text style={[styles.btnText, active && styles.btnTextActive]}>
-        {label}
+      <Text style={[styles.btnText, showingEnglish && styles.btnTextActive]}>
+        {showingEnglish ? 'SR' : 'EN'}
       </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginRight: 4,
-  },
   btn: {
+    marginRight: 4,
     paddingHorizontal: 10,
     paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
     backgroundColor: '#f9fafb',
   },
   btnActive: {
     backgroundColor: '#1e3a5f',
+    borderColor: '#1e3a5f',
   },
   btnText: {
     fontSize: 12,

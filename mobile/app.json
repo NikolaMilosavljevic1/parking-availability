@@ -5,15 +5,14 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "splash": {
-      "resizeMode": "contain",
-      "backgroundColor": "#1d4ed8"
-    },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.belgradepark.app",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Used to calculate your distance to parking locations.",
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
         "LSApplicationQueriesSchemes": [
           "comgooglemaps",
           "waze",
@@ -31,14 +30,30 @@
         "ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
-      ],
-      "usesCleartextTraffic": true
+      ]
     },
     "plugins": [
       [
         "expo-location",
         {
           "locationWhenInUsePermission": "Used to calculate your distance to parking locations."
+        }
+      ],
+      "expo-localization",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1d4ed8",
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
         }
       ]
     ],
