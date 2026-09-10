@@ -10,7 +10,8 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
 
 ## Screenshots
 
-<table>
+<div align="center">
+<table width="520">
   <tr>
     <td width="50%" align="center" valign="top">
       <img src="docs/screenshots/01-list-destination-recommended.png" width="240" alt="Destination search and recommended garage" />
@@ -38,6 +39,7 @@ Real-time parking availability for Belgrade, Serbia. Scrapes live data from [JKP
     </td>
   </tr>
 </table>
+</div>
 
 Live WebSocket updates, GPS distance, destination search, smart recommendation, stay-duration cost estimates, JKP rates (RSD), Serbian / English UI.
 
